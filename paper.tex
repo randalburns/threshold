@@ -273,7 +273,7 @@ little downside to storing query results in the cache.
 
 %-The evaluation is computationally limited and embarrassingly parallel, which makes it a good candidate for a GPU implementation.
 
-\section{Scientific Use Cases}
+\section{Scientific Use Cases}\label{science_use_cases}
 Max vorticity clustering.
 
 \section{JHTDB}
@@ -360,15 +360,25 @@ SATA disks arranged as a set of four RAID-5 arrays. The database files are distr
 arrays. The tables storing the data are partitioned spatially along contiguous ranges of the Morton z-curve and the data for each partition reside in one
 database file. 
 
--- measure the overhead of querying the cache first
+For this evaluation we looked at the performance of threshold queries to the vorticity field. The vorticity field is representative of derived fields, which
+have to be computed from the stored data. The vorticity is computed from the velocity field by taking its curl. As described in section \ref{science_use_cases}
+thresholding the vorticity field is important in the study of fluid dynamics and clustering the locations of maximum vorticity can lead to new insights into
+the development of the most intense vortices that are observed. [TODO: Consider showing other fields as well; possibly thresholding the velocity by itself]
+
+-- measure the overhead of querying the cache first:
+Figure showing avg. execution times of queries for vorticity with a high threshold, medium threshold and low threshold. For each threshold value
+plot the time to simply do the I/O, the time the query takes without the presence of a cache (the difference is essentially the time taken to compute
+the vorticity field at each location on the grid) and the time the query takes with the inclusion of a cache. This shows that the overhead associated
+with querying and updating the cache is not significant. Consider including a figure for a representative time-step showing the PDF of the vorticity field
+to show how the vorticity values are distributed and to get an understanding for the different threshold levels. 
 
 -- measure time taken to perform the thresholding computation for an entire time step on a cold cache
 
 -- measure time taken to evaluate the query after warming up the cache and polluting it afterward
 
--- compare with local evaluation
-
 -- provide scaling measurements
+
+-- compare with local evaluation
 
 \section{Related Work}
 A{\ss}falg et al. introduce the concept of threshold queries in time series databases \cite{Asfalg}. Their definition of threshold queries differs from the threshold

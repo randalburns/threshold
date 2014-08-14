@@ -112,6 +112,8 @@ escapeinside={\%*}{*)},          % if you want to add a comment within your code
 frameround=fttt
 }
 
+\newcommand{\kk}[1]{{\color{blue}{\it KK: #1}}}
+
 \begin{document}
 
 %% \title{A Sample {\ttlit ACM} SIG Proceedings Paper in LaTeX
@@ -201,6 +203,12 @@ Efficient evaluation of threshold queries of derived fields in a numerical simul
 \maketitle
 
 \begin{abstract}
+Large numerical simulations are frequently used to study many different physical phenomena. The datasets produced by these simulations are in the TB and
+even PB ranges. Data-intensive architectures and compute clusters have been deployed to store, manage and provide public access to such datasets. 
+The systems built on-top of these architectures, sometimes called virtual laboratories, do not always support the analysis functionality that scientists are 
+interested in. In this paper we present a method for the efficient evaluation of threshold queries of derived fields for large numerical simulation datasets
+stored in a cluster of relational databases. The method achieves scalability through data-parallel execution. Additionally, we introduce an application-aware 
+cache for query results, which has little overhead and improves query performance by X times for queries that hit the cache.
 
 \end{abstract}
 
@@ -228,14 +236,15 @@ and methods for their execution. They have to operate on large datasets distribu
 and in order to reduce their running times they have to make efficient use of the cluster resources. 
 
 Finding the locations or regions of highest vorticity or those with the largest norms of the velocity or other fields of interest is
-functionality that enables new insights in the study of fluid dynamics. Furthermore, threshold, top-k queries and similarity search in general
-are important in many different disciplines \cite{TODO}. In this paper we introduce an efficient evaluation strategy for threshold
+functionality that enables new insights in the study of fluid dynamics. Furthermore, threshold, top-$k$ queries and similarity search in general
+are important in many different disciplines. In this paper we introduce an efficient evaluation strategy for threshold
 queries over time series datasets stored in a cluster of relational databases. Our method evaluates not only threshold queries of the vector or 
 scalar field data stored in the database, but also performs thresholding of derived fields.
 
 %Why is it hard? (E.g., why do naive approaches fail?)
 The evaluation of threshold queries of derived fields requires a kernel computation at each point on the grid in order to compute the field to be thresholded.
-In order to evaluate such a query for a given time step all of the data for that time step must be read and each data point 
+The value of the derived field at each location depends on all the values at locations within the kernel of computation. 
+In order to evaluate such a query for a given time-step all of the data for that time-step must be read and each data point 
 will appear in $N$ kernels of computation, where $N$ is the size of the kernel. The evaluation is thus both data and computation intensive.
 It is impractical to materialize all possible derived fields due to the large size of the datasets and the limits of available storage. Therefore, threshold 
 queries have to be evaluated on-demand from the stored data.
@@ -253,14 +262,20 @@ and analysis is required to understand the physics that drive these intense even
 Data-intensive architectures and compute clusters built from commodity hardware rely on parallel I/O to multiple disks and high network bandwidth
 to achieve high throughput. Such systems have only recently been deployed for the storage of large numerical simulation 
 datasets. The virtual laboratories built on these systems often do not support
-all of the functionality that scientists are interested in. In this paper we present a method for the efficient evaluation of 
-threshold queries over numerical simulation data stored in a cluster of relational databases. 
+all of the functionality that scientists are interested in. Database systems support rollup queries, including top-$k$ queries, but in most cases these
+queries apply only simple linear score functions on the attribute values of individual records. 
+We present a method for the efficient evaluation of threshold queries over fields derived from the raw vector or scalar fields of the numerical simulation 
+stored in the database. Our method computes and operates on derived fields, which are derived by performing kernel computations over the array data 
+stored in the database.
+Our method makes effective use of the cluster resources and achieves high throughput and scalability. 
 
 %What are the key components of my approach and results? Also include any specific limitations.
 We exploit the parallelism 
-available in the cluster by means of data-parallel execution of the computations and moreover introduce an application-aware
-cache for query results. We build on the idea of an application-aware cache introduced in \cite{Lopez}, but rather than just data objects we cache
-the actual results of the computation, which leads to query performance improvement of up to X times.
+available in the cluster by means of data-parallel execution of the computations. Each computation is distributed across the nodes of the cluster and
+is executed in parallel by several threads within a database node by means of creating multiple connections to each node. Moreover we introduce an 
+application-aware cache for query results. We build on the idea of an application-aware cache introduced in \cite{Lopez}, but rather than just data 
+objects we cache the actual results of the computation, which leads to query performance improvement of up to X times. In that regard the cache
+that we use shares more similarities with the idea of semantic caching \cite{Ren}.
 
 - The introduction of an application-aware cache improves the running time of queries substantially if there is a cache hit and there is 
 little downside to storing query results in the cache.
@@ -277,7 +292,8 @@ little downside to storing query results in the cache.
 Max vorticity clustering.
 
 \section{JHTDB}
-The Johns Hopkins Turbulence Databases (JHTDB), built on top of the GrayWulf and DataScope clusters, serve as a public virtual laboratory for
+The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
+Johns Hopkins Turbulence Databases (JHTDB). The JHTDB, built on top of the GrayWulf and DataScope clusters, serve as a public virtual laboratory for
 the study of turbulent phenomena. The JHTDB store several datasets, which are the output of high-resolution numerical simulations of turbulence.
 The 3d time-series data are partitioned into small sub-cubes and stored in relational databases distributed across the nodes of the cluster.
 Access to the data is provided by means of Web-services and a variety of analysis functions have been
@@ -290,21 +306,21 @@ The total amount of space occupied by the datasets is over 230 TB.
 The database nodes are part of the GrayWulf \cite{Szalay} and DataScope \cite{TODO} clusters. Each node
 is running Windows Server 2008 and SQL Server 2008 R2. The data for each dataset are partitioned spatially across 4 to 8
 database nodes, and each database node hosts one or more databases. We use the Morton z-order space-filling
-curve to distribute the data across nodes and databases as well as to spatially subdivide each time step
-into database atoms, which are of size $8^3$. Each such atom is indexed by the time step, which it belongs to and
+curve to distribute the data across nodes and databases as well as to spatially subdivide each time-step
+into database atoms, which are of size $8^3$. Each such atom is indexed by the time-step, which it belongs to and
 by the Morton code of it's lower left corner. This combination of index and data forms a record in the database.
 Queries to the data and derived fields, such as derivatives and filtered quantities are evaluated through
 stored procedures or user-defined functions implemented in the Common Language Runtime (CLR) framework.
 
-The Web-services are hosted on a front-end Web-server, which handles user requests and hosts the main Webpage portal.
+The Web-services are hosted on a front-end Web-server, which handles user requests and hosts the main Web-page portal.
 The Web-server acts as a mediator sending the users' requests to the database nodes and initiating their distributed evaluation. 
 It assembles the results and sends them back to the client
 
 The JHTDB provide a variety of data-intensive analysis routines that are executed on the database nodes. These include interpolation, 
 differentiation, particle tracking and spatial filtering. These tasks are often data-intensive and in order to leverage the capabilities of the cluster we
 have developed data-driven batch processing techniques for their evaluation \cite{KanovSC11, KanovSC12}. What differentiates threshold and
-top-k queries from these tasks is the fact that they usually operate on small subsets of the space or a collection of individual target locations, whereas
-threshold and top-k queries usually have to examine the entire data volume. Furthermore, the data product of threshold and top-k queries is much
+top-$k$ queries from these tasks is the fact that they usually operate on small subsets of the space or a collection of individual target locations, whereas
+threshold and top-$k$ queries usually have to examine the entire data volume. Furthermore, the data product of threshold and top-$k$ queries is much
 smaller in relation to the amount of data that need to be examined. This fact combined with the fact that subsequent queries can reuse previously
 computed results makes the query results suitable to caching. 
 
@@ -330,10 +346,9 @@ answer subsequent queries as long as they are within the same region and specify
 preserves the computational effort in addition to substantially reducing I/O. We do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
-
-%Application-aware cache that effectively caches not only data, but also computational effort. 
-%In the case of thresholding what is cached are the results of the computation. 
-%This means that the computation does not have to be repeated and the amount of data cached is several orders of magnitude smaller than the raw data.
+\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
+and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
+computation accessing multiple data points in a kernel around the target location.}
 
 The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
 asynchronously. Each node begins evaluation of the query by first performing a cache lookup. If the data for the requested field, time-step and spatial region
@@ -343,9 +358,9 @@ cache have a higher threshold than the one requested the cache needs to be updat
 parameters the query needs to be evaluated from the raw data. In that case the raw data are read into memory with data along the boundary requested from
 adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is compared against
 the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
-for the new records, space is freed up by removing the least recently used data. Again, reading from, updating or modifying the cache is done within a
-transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction, which
-provides for a higher degree of parallelism. Figure \ref{figCacheLookup} illustrates this process.
+for the new records, space is freed up by removing the least recently used data.  Again, reading from, updating or modifying the cache is done within a
+transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction. This
+provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel. Figure \ref{figCacheLookup} illustrates this process.
 
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 
@@ -363,7 +378,7 @@ database file.
 For this evaluation we looked at the performance of threshold queries to the vorticity field. The vorticity field is representative of derived fields, which
 have to be computed from the stored data. The vorticity is computed from the velocity field by taking its curl. As described in section \ref{science_use_cases}
 thresholding the vorticity field is important in the study of fluid dynamics and clustering the locations of maximum vorticity can lead to new insights into
-the development of the most intense vortices that are observed. [TODO: Consider showing other fields as well; possibly thresholding the velocity by itself]
+the development of the most intense vortices that are observed. \kk{Consider showing other fields as well; possibly thresholding the velocity by itself}
 
 -- measure the overhead of querying the cache first:
 Figure showing avg. execution times of queries for vorticity with a high threshold, medium threshold and low threshold. For each threshold value
@@ -372,7 +387,7 @@ the vorticity field at each location on the grid) and the time the query takes w
 with querying and updating the cache is not significant. Consider including a figure for a representative time-step showing the PDF of the vorticity field
 to show how the vorticity values are distributed and to get an understanding for the different threshold levels. 
 
--- measure time taken to perform the thresholding computation for an entire time step on a cold cache
+-- measure time taken to perform the thresholding computation for an entire time-step on a cold cache
 
 -- measure time taken to evaluate the query after warming up the cache and polluting it afterward
 
@@ -381,6 +396,19 @@ to show how the vorticity values are distributed and to get an understanding for
 -- compare with local evaluation
 
 \section{Related Work}
+The processing of top-$k$ queries has been studied extensively in the context of distributed and relational database systems. A survey of different techniques
+in the case of centralized processing is given in \cite{Ilyas}. In the case of distributed processing different approaches focus on horizontally 
+\cite{Balke, Vlachou} or vertically \cite{Cao, Chaudhuri, Guntzer, Marian, Michel} distributed data. None of these approaches deals with array data stored in
+a realtional database system. Moreover, these approaches focus on top-$k$ queries that use simple linear score functions to aggregate the atribute values of
+individual records. In addition to top-$k$ queries we are also interested in threshold queries, where the result set includes all locations and values that are
+above a user prescribed threshold. 
+
+Zhao et al. propose an algorithm for the processing of top-$k$ queries in large-scale distributed environments called BRANCA \cite{Zhao}. They build on the 
+idea of semantic caching \cite{Ren} and make use of brach caches, which store results of previous top-$k$ queries with respect to the data stored on each server.
+The caching mecahnism that we use is similar in that regard, but the queries that are evaluated in our system operate on derived fields, which are computed
+at each location by accessing data from a surrounding region. The queries described in \cite{Zhao} operate over the attributes of individual records only using
+simple linear score functions.
+
 A{\ss}falg et al. introduce the concept of threshold queries in time series databases \cite{Asfalg}. Their definition of threshold queries differs from the threshold
 queries described in this paper. They are concerned with determining the time series, which exceed a user-defined threshold at time frames similar to
 the time series specified in the query. Thus, their definition of threshold queries is concerned with the temporal relationship between the time series

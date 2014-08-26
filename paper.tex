@@ -203,10 +203,12 @@ Efficient evaluation of threshold queries of derived fields in a numerical simul
 \maketitle
 
 \begin{abstract}
-Large numerical simulations are frequently used to study many different physical phenomena. The datasets produced by these simulations are in the TB and
+Large numerical simulations are commonplace in the study of many different physical phenomena. 
+The datasets produced by these simulations are in the TB and
 even PB ranges. Data-intensive architectures and compute clusters have been deployed to store, manage and provide public access to such datasets. 
-The systems built on-top of these architectures, sometimes called virtual laboratories, do not always support the analysis functionality that scientists are 
-interested in. In this paper we present a method for the efficient evaluation of threshold queries of derived fields for large numerical simulation datasets
+The systems built on top of these architectures, sometimes called virtual laboratories, usually do not support the analysis functionality that scientists are 
+interested in out of the box. In this paper we present a method for the efficient evaluation of threshold queries of derived fields for large numerical 
+simulation datasets
 stored in a cluster of relational databases. The method achieves scalability through data-parallel execution. Additionally, we introduce an application-aware 
 cache for query results, which has little overhead and improves query performance by X times for queries that hit the cache.
 
@@ -229,7 +231,7 @@ fast access to such data sets. Examples include the GrayWulf and DataScope clust
 of 1.1PB and xPB
 respectively. These systems differ from the traditional HPC systems in that they aim to achieve high aggregate throughput by balancing computation
 capabilities with I/O and network bandwidth. The computing systems and services developed on top of these platforms are more than pure
-storage engines and usually have complex analysis routines built-in, which has largely been driven by the "move the computation to the data"
+storage engines and usually have complex analysis routines built-in, which has largely been driven by the ``move the computation to the data"
 paradigm. These built-in analysis routines are most often not novel themselves. They implement core scientific functionality for the study of the
 particular scientific phenomena, which was observed or simulated in the first place. The analysis routines however require novel evaluation strategies 
 and methods for their execution. They have to operate on large datasets distributed across multiple nodes of a cluster of relational databases 
@@ -358,7 +360,7 @@ cache have a higher threshold than the one requested the cache needs to be updat
 parameters the query needs to be evaluated from the raw data. In that case the raw data are read into memory with data along the boundary requested from
 adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is compared against
 the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
-for the new records, space is freed up by removing the least recently used data.  Again, reading from, updating or modifying the cache is done within a
+for the new records, space is freed up by removing the least recently used data.  Reading from, updating or modifying the cache is done within a
 transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction. This
 provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel. Figure \ref{figCacheLookup} illustrates this process.
 
@@ -370,28 +372,77 @@ a threshold locally by the user.
 
 The experiments were run on the production database nodes of the JHTDB through a development Web-server hosting the Web-services. We used
 the MHD dataset for the experimental runs. This dataset is partitioned across 4 database nodes according to spatial regions in the Morton z-order. 
-The database nodes are 2.33 GHz dual quad-core Windows 2008 servers with SQL Server 2008 R2 and 24 GB of memory. Each node has 24 2TB 
+The database nodes are 2.66 GHz dual quad-core Windows 2008 servers with SQL Server 2008 R2 and 24 GB of memory. Each node has 24 2TB 
 SATA disks arranged as a set of four RAID-5 arrays. The database files are distributed in a round-robin fashion across the nodes and their associated disk
 arrays. The tables storing the data are partitioned spatially along contiguous ranges of the Morton z-curve and the data for each partition reside in one
 database file. 
 
 For this evaluation we looked at the performance of threshold queries to the vorticity field. The vorticity field is representative of derived fields, which
-have to be computed from the stored data. The vorticity is computed from the velocity field by taking its curl. As described in section \ref{science_use_cases}
+have to be computed from the stored data. The vorticity is computed from the velocity field by taking its curl:
+\begin{align}
+\vec{\omega} = \vec{\nabla} \times \vec{v}.
+\label{eq:curl}
+\end{align}
+We use finite differencing methods of
+different orders for the evaluation of the curl. As described in section \ref{science_use_cases}
 thresholding the vorticity field is important in the study of fluid dynamics and clustering the locations of maximum vorticity can lead to new insights into
 the development of the most intense vortices that are observed. \kk{Consider showing other fields as well; possibly thresholding the velocity by itself}
 
--- measure the overhead of querying the cache first:
-Figure showing avg. execution times of queries for vorticity with a high threshold, medium threshold and low threshold. For each threshold value
-plot the time to simply do the I/O, the time the query takes without the presence of a cache (the difference is essentially the time taken to compute
-the vorticity field at each location on the grid) and the time the query takes with the inclusion of a cache. This shows that the overhead associated
-with querying and updating the cache is not significant. Consider including a figure for a representative time-step showing the PDF of the vorticity field
-to show how the vorticity values are distributed and to get an understanding for the different threshold levels. 
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{Figures/cache_overhead.pdf}
+\caption{Execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the absence of a cache.}
+\label{fig:cache_overhead}
+\end{figure}
+
+The central part of the strategy that we have developed for the evaluation of threshold queries of derived fields is the application-aware cache, which
+stores the results of these queries. We first evaluate the overhead associated with the introduction and maintenance of the cache. Fig. \ref{fig:cache_overhead}
+compares the execution time of queries in the absence of a cache with the execution time of the same queries, which interrogate the cache first.
+For these experiments we requested
+the locations with norms of the vorticity above thresholds at different levels. For the first set the threshold was set high and only ~4,300 points (or 0.0004\%
+of all points) were above the threshold. For the second set a medium threshold was chosen and ~87,000 points (or 0.0081\% of all points) were above the
+threshold. Finally, a low threshold was chosen for the last set with ~900,000 points (or 0.0847\% of all points) above the threshold. For each set a random
+time-step was chosen and the queries were run against that time-step. The execution times were averaged over 10 runs. We utilized 4 threads per database
+node for the evaluation of each query. As we can see from the results the overhead associated with querying the cache first is small, less than 5\% and within
+the margin of error.
+\kk{Consider including a figure for a representative time-step showing the PDF of the vorticity field
+to show how the vorticity values are distributed and to get an understanding for the different threshold levels.}
+
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{Figures/io_comparison.pdf}
+\caption{Execution time for threshold queries evaluated utilizing different number of
+threads per server compared with the time taken to perform the I/O only.}
+\label{fig:io_comparison}
+\end{figure}
 
 -- measure time taken to perform the thresholding computation for an entire time-step on a cold cache
 
 -- measure time taken to evaluate the query after warming up the cache and polluting it afterward
 
--- provide scaling measurements
+The data-parallel evaluation of threshold queries exhibits good vertical scaling as shown in Fig. \ref{fig:scaleup}. For these experiments we issued queries
+with the same threshold values as in Fig. \ref{fig:cache_overhead} but with varying number of threads per node. The computations for all of 
+the derived fields of interest (such as the vorticity) at each gird point need data from adjacent grid points only. Therefore, each node of the cluster is able to
+compute the derived field from data available locally with only a little amount along the boundary of each region having to be retrieved from adjacent nodes.
+Each computation is independent and can be executed in parallel. This allows us to make use of multiple threads per node. 
+
+We observer a two times speedup when going from a single thread per node to two threads per node. The speedup diminishes to 1.3 times when going 
+to 4 threads and little speedup is 
+observed with 8 threads per node. This is due to several factors. Each node has 2 CPUs and a total of 8 cores, which need to run operating system and other SQL Server
+processes as well. The experiments were run on the live production database nodes, which were also servicing other user queries. This is also exhibited in
+the large variance that is seen in the running time of the queries. Additionally, SQL
+Server already utilizes parallelism to perform most of the I/O. Finally, due to the data-parallel approach to the evaluation data atoms along the boundary of
+each region will be request by multiple threads. Nevertheless, running with 4 threads per node is nearly 2.5 times faster when compared to running a single
+thread.
+\kk{Should we have scale-out experiments as well?}
+
+\begin{figure}
+\centering
+\includegraphics[width=3.5in]{Figures/scaleup.pdf}
+\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The evaluation was performed utilizing 1-8
+threads per server showcasing the vertical scalability of the implementation.}
+\label{fig:scaleup}
+\end{figure}
 
 -- compare with local evaluation
 

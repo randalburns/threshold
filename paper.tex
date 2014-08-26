@@ -209,7 +209,7 @@ even PB ranges. Data-intensive architectures and compute clusters have been depl
 The systems built on top of these architectures, sometimes called virtual laboratories, usually do not support the analysis functionality that scientists are 
 interested in out of the box. In this paper we present a method for the efficient evaluation of threshold queries of derived fields for large numerical 
 simulation datasets
-stored in a cluster of relational databases. The method achieves scalability through data-parallel execution. Additionally, we introduce an application-aware 
+stored in a cluster of relational databases. The method achieves scalability through data-parallel execution. We introduce an application-aware 
 cache for query results, which has little overhead and improves query performance by X times for queries that hit the cache.
 
 \end{abstract}
@@ -326,6 +326,13 @@ threshold and top-$k$ queries usually have to examine the entire data volume. Fu
 smaller in relation to the amount of data that need to be examined. This fact combined with the fact that subsequent queries can reuse previously
 computed results makes the query results suitable to caching. 
 
+\begin{figure*}
+\centering
+\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
+\caption{Cache lookup.}
+\label{fig:cache_diagram}
+\end{figure*}
+
 \section{Threshold Query Evaluation}
 
 Threshold queries of derived fields submitted to the JHTDB are evaluated using a data-parallel execution strategy and the query results are 
@@ -362,7 +369,8 @@ adjacent nodes as needed. The specified field is derived at each location on the
 the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
 for the new records, space is freed up by removing the least recently used data.  Reading from, updating or modifying the cache is done within a
 transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction. This
-provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel. Figure \ref{figCacheLookup} illustrates this process.
+provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel. Figure \ref{fig:cache_diagram} illustrates 
+this process.
 
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 
@@ -399,29 +407,32 @@ The central part of the strategy that we have developed for the evaluation of th
 stores the results of these queries. We first evaluate the overhead associated with the introduction and maintenance of the cache. Fig. \ref{fig:cache_overhead}
 compares the execution time of queries in the absence of a cache with the execution time of the same queries, which interrogate the cache first.
 For these experiments we requested
-the locations with norms of the vorticity above thresholds at different levels. For the first set the threshold was set high and only ~4,300 points (or 0.0004\%
-of all points) were above the threshold. For the second set a medium threshold was chosen and ~87,000 points (or 0.0081\% of all points) were above the
-threshold. Finally, a low threshold was chosen for the last set with ~900,000 points (or 0.0847\% of all points) above the threshold. For each set a random
-time-step was chosen and the queries were run against that time-step. The execution times were averaged over 10 runs. We utilized 4 threads per database
+the locations with norms of the vorticity above thresholds at different levels. For the first set the threshold was set high and only $\sim$4,300 points 
+(or 0.0004\% of all points) were above the threshold. For the second set a medium threshold was chosen and $\sim$87,000 points 
+(or 0.0081\% of all points) were above the threshold. Finally, a low threshold was chosen for the last set with $\sim$900,000 points 
+(or 0.0847\% of all points) above the threshold. For each set a random
+time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
+The execution times were averaged over 10 runs and cache entries for the particular time-step were dropped before each run. 
+We utilized 4 threads per database
 node for the evaluation of each query. As we can see from the results the overhead associated with querying the cache first is small, less than 5\% and within
-the margin of error.
+the margin of error. Additionally, the method shows stable running time across different time-steps and threshold levels
 \kk{Consider including a figure for a representative time-step showing the PDF of the vorticity field
 to show how the vorticity values are distributed and to get an understanding for the different threshold levels.}
 
 \begin{figure}
 \centering
-\includegraphics[width=3.5in]{Figures/io_comparison.pdf}
-\caption{Execution time for threshold queries evaluated utilizing different number of
-threads per server compared with the time taken to perform the I/O only.}
-\label{fig:io_comparison}
+\includegraphics[width=3.5in]{Figures/scaleup.pdf}
+\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The evaluation was performed utilizing 1-8
+threads per server showcasing the vertical scalability of the implementation.}
+\label{fig:scaleup}
 \end{figure}
 
 -- measure time taken to perform the thresholding computation for an entire time-step on a cold cache
 
 -- measure time taken to evaluate the query after warming up the cache and polluting it afterward
 
-The data-parallel evaluation of threshold queries exhibits good vertical scaling as shown in Fig. \ref{fig:scaleup}. For these experiments we issued queries
-with the same threshold values as in Fig. \ref{fig:cache_overhead} but with varying number of threads per node. The computations for all of 
+The data-parallel evaluation of threshold queries exhibits good vertical scaling as shown in Fig. \ref{fig:scaleup}. For these experiments we used the same
+queries and threshold values as for the runs shown in Fig. \ref{fig:cache_overhead} but with varying number of threads per node. The computations for all of 
 the derived fields of interest (such as the vorticity) at each gird point need data from adjacent grid points only. Therefore, each node of the cluster is able to
 compute the derived field from data available locally with only a little amount along the boundary of each region having to be retrieved from adjacent nodes.
 Each computation is independent and can be executed in parallel. This allows us to make use of multiple threads per node. 
@@ -431,17 +442,23 @@ to 4 threads and little speedup is
 observed with 8 threads per node. This is due to several factors. Each node has 2 CPUs and a total of 8 cores, which need to run operating system and other SQL Server
 processes as well. The experiments were run on the live production database nodes, which were also servicing other user queries. This is also exhibited in
 the large variance that is seen in the running time of the queries. Additionally, SQL
-Server already utilizes parallelism to perform most of the I/O. Finally, due to the data-parallel approach to the evaluation data atoms along the boundary of
-each region will be request by multiple threads. Nevertheless, running with 4 threads per node is nearly 2.5 times faster when compared to running a single
-thread.
+Server already utilizes parallelism to perform most of the I/O. Finally, due to the data-parallel approach to the evaluation of these queries the data atoms along
+the boundary of each region will be requested by multiple threads. Nevertheless, running with 4 threads per node is nearly 2.5 times faster when compared to
+running a single thread.
 \kk{Should we have scale-out experiments as well?}
+
+Fig. \ref{fig:io_comparison} compares the running time of the queries with a medium threshold and executed with varying number of threads per node with
+the time taken to perform the I/O only. The I/O time is about half of the total running time for these queries. As expected weaker than linear scale-up is 
+observed for the I/O when additional threads are utilized. SQL Server already makes use of parallelism internally and the data have to be retrieve from the
+same set of disks. It is worth noting that the total running time for the queries evaluated with 4 or 8 threads is about the same as the time it takes to perform the
+I/O only with a single thread.
 
 \begin{figure}
 \centering
-\includegraphics[width=3.5in]{Figures/scaleup.pdf}
-\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The evaluation was performed utilizing 1-8
-threads per server showcasing the vertical scalability of the implementation.}
-\label{fig:scaleup}
+\includegraphics[width=3.5in]{Figures/io_comparison.pdf}
+\caption{Execution time for threshold queries evaluated utilizing different number of
+threads per server compared with the time taken to perform the I/O only.}
+\label{fig:io_comparison}
 \end{figure}
 
 -- compare with local evaluation

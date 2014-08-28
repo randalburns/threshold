@@ -49,6 +49,8 @@
 
 \usepackage{listings}
 \usepackage[usenames,dvipsnames]{color}
+\usepackage{multirow}
+\usepackage{array}
 %\usepackage{natbib}% bold math
 \newcommand{\ddx}[2]{ \frac{ \partial #1}{ \partial {#2} } }
 %\newcommand{\ddt}[1]{ \frac{\partial #1}{\partial t} }
@@ -348,9 +350,17 @@ answer subsequent queries as long as they are within the same region and specify
 preserves the computational effort in addition to substantially reducing I/O. We do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
+
 %\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
 %and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
 %computation accessing multiple data points in a kernel around the target location.}
+
+The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
+The space required to cache the maximum number of points per time-step including the index space and database overhead is $\sim$40MB. 
+Therefore for a dataset containing 
+1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
+results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a derived field for the entire dataset will
+require $\sim$5TB.
 
 The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
 asynchronously. Each node begins evaluation of the query by first performing a cache lookup. If the data for the requested field, time-step and spatial region
@@ -370,6 +380,19 @@ We evaluate the developed method for the execution of threshold queries to large
 benefits and overhead from the introduction of the application-aware cache. We also analyze the scaling properties of the method. Finally, we show
 that an integrated method that performs the evaluation on the database nodes near the data is several orders of magnitude faster than evaluating
 a threshold locally by the user.
+
+\begin{table}
+\centering
+\begin{tabular}{|c|c|c|c|} \hline
+\multirow{2}{0.8in}{Points above threshold} & \multicolumn{3}{|c|}{Running time (s.)}\\ \cline{2-4}
+ & No cache & \parbox[t]{0.7in}{With cache (miss)} & \parbox[t]{0.7in}{With cache (hit)} \\ \hline
+4247 & 97.1 & 100.2 & 0.5\\ \hline
+86580 & 113.7 & 115.9 & 1.2\\ \hline
+909274 & 111.6 & 115.0 & 9.1\\ \hline
+\end{tabular}
+\caption{Effectiveness of caching.}
+\label{tab:cache_effectiveness}
+\end{table}
 
 The experiments were run on the production database nodes of the JHTDB through a development Web-server hosting the Web-services. We used
 the MHD dataset for the experimental runs. This dataset is partitioned across 4 database nodes according to spatial regions in the Morton z-order. 
@@ -405,10 +428,15 @@ the locations with norms of the vorticity above thresholds at different levels. 
 (or 0.0081\% of all points) were above the threshold. Finally, a low threshold was chosen for the last set with $\sim$900,000 points 
 (or 0.0847\% of all points) above the threshold. For each set a random
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
-The execution times were averaged over 10 runs and cache entries for the particular time-step were dropped before each run. 
+The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
+Cache entries for the particular time-step queried were dropped before each run, making sure that each query would produce a cache miss and would
+have to be evaluated from the raw data. 
+The execution times were averaged over 10 runs.
 We utilized 4 threads per database
-node for the evaluation of each query. As we can see from the results the overhead associated with querying the cache first is small, less than 3\% and within
-the margin of error. Additionally, the method shows stable running time across different time-steps and threshold levels
+node for the evaluation of each query. As we can see from the results the overhead associated with querying the cache first is minimal, 
+less than 3\% and within
+the margin of error. Additionally, the method shows stable running time across different time-steps and threshold levels. The slight increase in the running
+time that can be observed is due to the larger result set that has to be returned to the user.
 \kk{Consider including a figure for a representative time-step showing the PDF of the vorticity field
 to show how the vorticity values are distributed and to get an understanding for the different threshold levels.}
 
@@ -420,12 +448,20 @@ threads per server showcasing the vertical scalability of the implementation.}
 \label{fig:scaleup}
 \end{figure}
 
--- measure time taken to perform the thresholding computation for an entire time-step on a cold cache
+Table \ref{tab:cache_effectiveness} shows the effectiveness of the cache in the case of a cache hit. It includes the data from Fig. \ref{fig:cache_overhead}
+for the cases of execution in the absence of a cache and for cache misses. In the last column we show the running time of queries for which there is a 
+cache hit. To simulate this scenario we first warm up the cache by submitting the same set of threshold queries of the vorticity field as before. We then submit
+several more unrelated queries with different time-steps and threshold values in order to pollute the cache. Finally, we issue the original set of queries and 
+measure their running times. As we can see from these results the introduction of an application-aware cache for the results of threshold queries yields over
+an order of magnitude improvement for queries that hit the cache even for queries that have a low threshold and large result sets. Let us focus on the query
+with low threshold, which returns $\sim$900,000 points. Given that the number of points that can be returned from a threshold query is limited to 1,000,000
+it is likely that all subsequent queries to this time-step will result in a cache hit as their threshold is likely to be equal or higher than the cached one.
 
--- measure time taken to evaluate the query after warming up the cache and polluting it afterward
 
 The data-parallel evaluation of threshold queries exhibits good vertical scaling as shown in Fig. \ref{fig:scaleup}. For these experiments we used the same
-queries and threshold values as for the runs shown in Fig. \ref{fig:cache_overhead} but with varying number of threads per node. The computations for all of 
+queries and threshold values as for the runs shown in Fig. \ref{fig:cache_overhead} but with varying number of threads per node. Cache entries for the
+time-step queried were again dropped before each run in order to evaluate the scaling properties of the computation of the derived field from the stored data.
+The computations for all of 
 the derived fields of interest (such as the vorticity) at each gird point need data from adjacent grid points only. Therefore, each node of the cluster is able to
 compute the derived field from data available locally with only a little amount along the boundary of each region having to be retrieved from adjacent nodes.
 Each computation is independent and can be executed in parallel. This allows us to make use of multiple threads per node. 
@@ -433,8 +469,7 @@ Each computation is independent and can be executed in parallel. This allows us 
 We observer nearly a two times speedup when going from a single thread per node to two threads per node. The speedup diminishes to 1.4 times when going 
 to 4 threads and little speedup is 
 observed with 8 threads per node. This is due to several factors. Each node has 2 CPUs and a total of 8 cores, which need to run operating system and other SQL Server
-processes as well. The experiments were run on the live production database nodes, which were also servicing other user queries. This is also exhibited in
-the large variance that is seen in the running time of the queries. Additionally, SQL
+processes as well. The experiments were run on the live production database nodes, which were also servicing other user queries. Additionally, SQL
 Server already utilizes parallelism to perform most of the I/O. Finally, due to the data-parallel approach to the evaluation of these queries the data atoms along
 the boundary of each region will be requested by multiple threads. Nevertheless, running with 4 threads per node is nearly 2.6 times faster when compared to
 running a single thread.
@@ -442,7 +477,7 @@ running a single thread.
 
 Fig. \ref{fig:io_comparison} compares the running time of the queries with a medium threshold and executed with varying number of threads per node with
 the time taken to perform the I/O only. The I/O time is about half of the total running time for these queries. As expected weaker than linear scale-up is 
-observed for the I/O when additional threads are utilized. SQL Server already makes use of parallelism internally and the data have to be retrieve from the
+observed for the I/O when additional threads are utilized. SQL Server already makes use of parallelism internally and the data have to be retrieved from the
 same set of disks. It is worth noting that the total running time for the queries evaluated with 4 or 8 threads is about the same as the time it takes to perform the
 I/O only with a single thread.
 
@@ -483,7 +518,7 @@ we do not cache raw data objects, but rather query results. This substantially r
 
 \section{Conclusions and Future Work}
 
-- Lays the ground work for the creation of a landmark database, which could store the location of the highest vorticity regions in the dataset.
+- Lays the ground work for the creation of a landmark database, which could store the locations of the highest vorticity regions in the dataset.
 
 %% \section{The {\secit Body} of The Paper}
 %% Typically, the body of a paper is organized

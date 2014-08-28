@@ -248,8 +248,8 @@ The evaluation of threshold queries of derived fields requires a kernel computat
 The value of the derived field at each location depends on all the values at locations within the kernel of computation. 
 In order to evaluate such a query for a given time-step all of the data for that time-step must be read and each data point 
 will appear in $N$ kernels of computation, where $N$ is the size of the kernel. The evaluation is thus both data and computation intensive.
-It is impractical to materialize all possible derived fields due to the large size of the datasets and the limits of available storage. Therefore, threshold 
-queries have to be evaluated on-demand from the stored data.
+It is impractical to materialize all possible derived fields due to the large size of the datasets and the limits of available storage. Therefore, the derived fields 
+and threshold queries on them have to be evaluated on-demand from the stored data.
 Database, operating and file system caches are effective at speeding up access to the large amounts of data stored on disk. However, as was
 shown by Lopez et al. \cite{Lopez} this might not be sufficient for some interactive applications. Moreover, even if the data are available in the cache the
 computation associated with the derived field still needs to be performed for each point on the grid as results of previous computations are not cached. 
@@ -267,7 +267,7 @@ datasets. The virtual laboratories built on these systems often do not support
 all of the functionality that scientists are interested in. Database systems support rollup queries, including top-$k$ queries, but in most cases these
 queries apply only simple linear score functions on the attribute values of individual records. 
 We present a method for the efficient evaluation of threshold queries over fields derived from the raw vector or scalar fields of the numerical simulation 
-stored in the database. Our method computes and operates on derived fields, which are derived by performing kernel computations over the array data 
+stored in the database. The derived fields, which our method computes and operates on are derived by performing kernel computations over the array data 
 stored in the database.
 Our method makes effective use of the cluster resources and achieves high throughput and scalability. 
 
@@ -275,18 +275,11 @@ Our method makes effective use of the cluster resources and achieves high throug
 We exploit the parallelism 
 available in the cluster by means of data-parallel execution of the computations. Each computation is distributed across the nodes of the cluster and
 is executed in parallel by several threads within a database node by means of creating multiple connections to each node. Moreover we introduce an 
-application-aware cache for query results. We build on the idea of an application-aware cache introduced in \cite{Lopez}, but rather than just data 
-objects we cache the actual results of the computation, which leads to query performance improvement of up to X times. In that regard the cache
-that we use shares more similarities with the idea of semantic caching \cite{Ren}.
-
-- The introduction of an application-aware cache improves the running time of queries substantially if there is a cache hit and there is 
-little downside to storing query results in the cache.
-
-- The evaluation scales with the amount of parallelism available in the cluster. 
+application-aware cache for query results. We build on the idea of an application-aware cache introduced by Lopez et al. \cite{Lopez} and more broadly 
+on the concept of semantic caching \cite{Ren}. Rather than caching just data as is the case in system caches and the tree-cache described by Lopez et al.
+we cache the actual results of the computation, which leads to query performance improvement of up to X times.
 
 - 3d and 4d clusters of highest vorticity locations. 
-
-- Lays the ground work for the creation of a landmark database, which could store the location of the highest vorticity regions in the dataset.
 
 %-The evaluation is computationally limited and embarrassingly parallel, which makes it a good candidate for a GPU implementation.
 
@@ -355,9 +348,9 @@ answer subsequent queries as long as they are within the same region and specify
 preserves the computational effort in addition to substantially reducing I/O. We do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
-\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
-and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
-computation accessing multiple data points in a kernel around the target location.}
+%\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
+%and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
+%computation accessing multiple data points in a kernel around the target location.}
 
 The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
 asynchronously. Each node begins evaluation of the query by first performing a cache lookup. If the data for the requested field, time-step and spatial region
@@ -414,7 +407,7 @@ the locations with norms of the vorticity above thresholds at different levels. 
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
 The execution times were averaged over 10 runs and cache entries for the particular time-step were dropped before each run. 
 We utilized 4 threads per database
-node for the evaluation of each query. As we can see from the results the overhead associated with querying the cache first is small, less than 5\% and within
+node for the evaluation of each query. As we can see from the results the overhead associated with querying the cache first is small, less than 3\% and within
 the margin of error. Additionally, the method shows stable running time across different time-steps and threshold levels
 \kk{Consider including a figure for a representative time-step showing the PDF of the vorticity field
 to show how the vorticity values are distributed and to get an understanding for the different threshold levels.}
@@ -437,13 +430,13 @@ the derived fields of interest (such as the vorticity) at each gird point need d
 compute the derived field from data available locally with only a little amount along the boundary of each region having to be retrieved from adjacent nodes.
 Each computation is independent and can be executed in parallel. This allows us to make use of multiple threads per node. 
 
-We observer a two times speedup when going from a single thread per node to two threads per node. The speedup diminishes to 1.3 times when going 
+We observer nearly a two times speedup when going from a single thread per node to two threads per node. The speedup diminishes to 1.4 times when going 
 to 4 threads and little speedup is 
 observed with 8 threads per node. This is due to several factors. Each node has 2 CPUs and a total of 8 cores, which need to run operating system and other SQL Server
 processes as well. The experiments were run on the live production database nodes, which were also servicing other user queries. This is also exhibited in
 the large variance that is seen in the running time of the queries. Additionally, SQL
 Server already utilizes parallelism to perform most of the I/O. Finally, due to the data-parallel approach to the evaluation of these queries the data atoms along
-the boundary of each region will be requested by multiple threads. Nevertheless, running with 4 threads per node is nearly 2.5 times faster when compared to
+the boundary of each region will be requested by multiple threads. Nevertheless, running with 4 threads per node is nearly 2.6 times faster when compared to
 running a single thread.
 \kk{Should we have scale-out experiments as well?}
 
@@ -472,7 +465,7 @@ individual records. In addition to top-$k$ queries we are also interested in thr
 above a user prescribed threshold. 
 
 Zhao et al. propose an algorithm for the processing of top-$k$ queries in large-scale distributed environments called BRANCA \cite{Zhao}. They build on the 
-idea of semantic caching \cite{Ren} and make use of brach caches, which store results of previous top-$k$ queries with respect to the data stored on each server.
+idea of semantic caching \cite{Ren} and make use of branch caches, which store results of previous top-$k$ queries with respect to the data stored on each server.
 The caching mecahnism that we use is similar in that regard, but the queries that are evaluated in our system operate on derived fields, which are computed
 at each location by accessing data from a surrounding region. The queries described in \cite{Zhao} operate over the attributes of individual records only using
 simple linear score functions.
@@ -489,6 +482,8 @@ perform query reordering. This work has inspired the use of an application-aware
 we do not cache raw data objects, but rather query results. This substantially reduces the size of the cache and improves query performance.
 
 \section{Conclusions and Future Work}
+
+- Lays the ground work for the creation of a landmark database, which could store the location of the highest vorticity regions in the dataset.
 
 %% \section{The {\secit Body} of The Paper}
 %% Typically, the body of a paper is organized

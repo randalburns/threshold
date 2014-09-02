@@ -331,22 +331,31 @@ computed results makes the query results suitable to caching.
 \section{Threshold Query Evaluation}
 
 Threshold queries of derived fields submitted to the JHTDB are evaluated using a data-parallel execution strategy and the query results are 
-cached in an application-aware
-cache. The evaluation strategy for queries that do not hit the cache is driven by the spatial partitioning of the data across the nodes of the cluster.
-In most cases threshold queries operate over an entire time-step. Therefore, each such query is subdivided by the mediator into queries submitted to
+cached in an application-aware cache. The evaluation strategy for queries that do not hit the cache is driven by the spatial partitioning of the 
+data across the nodes of the cluster.
+
+{\bf Derived fields computation}. The databases store only the raw field data from the simulation (e.g. velocity, pressure, etc.). However, the threshold
+queries that are of biggest interest to science users aim to obtain all locations where the values of a derived field are above a given threshold. Thus, the
+derived field in question has to be computed from the raw data first. For most derived fields of interest this computation has local support. It has an 
+associated localized kernel of computation around each grid node. Therefore, the value of the derived field at each grid node depends on the value of the
+stored field at the grid locations, which are part of the kernel of computation. 
+
+{\bf Distributed data-parallel execution}. In most cases threshold queries operate over an entire time-step. Therefore, each such query is subdivided by 
+the mediator into queries submitted to
 each of the database nodes. Each node evaluates the query over the data that it has stored locally. Only a small amount of data along the boundary
 need to be requested from adjacent nodes. The data are read into memory and the particular field requested is computed at each of the locations on
-the grid. The norm or absolute value of the derived field at each location is compared against the specified threshold and if the value is higher it is 
-maintained along with
+the grid. The same strategy applies when utilizing multiple threads per node. The norm or absolute value of the derived field at each location is compared 
+against the specified threshold and if the value is higher it is maintained along with
 the spatial coordinates of the location in a list. We limit the maximum size of this list to around 1,000,000 locations in order to prevent having to return
-the entire time-step or a significant fraction of it for queries with thresholds that are set too low. The list of locations and values are then maintained in a 
-cache, which is local to the database node and indicates the function, time-step, spatial region and the threshold requested. We use a least recently
-used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
-avoid dirty-reads or inconstant view of the cache.
+the entire time-step or a significant fraction of it for queries with thresholds that are set too low. 
 
-The central part of the evaluation strategy for threshold queries that we have developed is the introduction of an application-aware cache
+{\bf Application-aware cache for query results}. The central part of the evaluation strategy for threshold queries that we have developed is the 
+introduction of an application-aware cache
 for query results. The results of these queries are small compared to the amount of data that need to be examined and the results can be used to
-answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Caching the query results
+answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node has a local 
+cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
+used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
+avoid dirty-reads or inconstant view of the cache. Caching the query results
 preserves the computational effort in addition to substantially reducing I/O. We do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
@@ -362,12 +371,12 @@ Therefore for a dataset containing
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a derived field for the entire dataset will
 require $\sim$5TB.
 
-The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
+{\bf Overall execution of threshold queries}. The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
 asynchronously. Each node begins evaluation of the query by first performing a cache lookup. If the data for the requested field, time-step and spatial region
 are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
 retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
 cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
-parameters the query needs to be evaluated from the raw data. In that case the raw data are read into memory with data along the boundary requested from
+parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested from
 adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is compared against
 the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
 for the new records, space is freed up by removing the least recently used data.  Reading from, updating or modifying the cache is done within a

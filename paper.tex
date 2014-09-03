@@ -288,11 +288,17 @@ application-aware cache for query results. We build on the idea of an applicatio
 on the concept of semantic caching \cite{Ren}. Rather than caching just data as is the case in system caches and the tree-cache described by Lopez et al.
 we cache the actual results of the computation, which leads to query performance improvement of over an order of magnitude.
 
-- 3d and 4d clusters of highest vorticity locations. 
-
 %-The evaluation is computationally limited and embarrassingly parallel, which makes it a good candidate for a GPU implementation.
 
 \section{Scientific Use Cases}\label{science_use_cases}
+
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/PDF.pdf}
+\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
+\label{fig:pdf}
+\end{figure}
+
 %Max vorticity clustering.
 One of the applications of thresholding in turbulence is to find the locations of maximum vorticity in a particular time-step or the dataset as a whole.
 The locations of maximum vorticity are usually associated with the most intense vortices in the dataset and often have interesting and complex
@@ -300,9 +306,40 @@ reconnection events associated with them.
 Once obtained from the service, these locations can be clustered in both 3d and 4d. This allows scientists to examine their evolution with the flow
 and make subsequent analysis queries as needed in order to study these events.
 
+The vorticity is computed from the velocity field by taking its curl:
+\begin{align}
+\vec{\omega} &= \vec{\nabla} \times \vec{v} = \left( \frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z} \right) 
+\times \nonumber \left( v_x, v_y, v_z \right)\\
+&= \left( \frac{\partial v_z}{\partial y} - \frac{\partial v_y}{\partial z}, \frac{\partial v_x}{\partial z} - \frac{\partial v_z}{\partial x}, 
+\frac{\partial v_y}{\partial x} - \frac{\partial v_x}{\partial y} \right).
+\label{eq:curl}
+\end{align}
+We use finite differencing methods of
+different orders for the evaluation of the curl. For example, with 4th-order centered finite differencing each partial derivative is evaluated from the 4
+adjacent grid node values as follows:  
+\begin{align} 
+\left.\frac{df}{dx}\right|_{x_n} = &\frac{2}{3\Delta x}[f(x_{n+1})-f(x_{n-1})]\nonumber\\ 
+&-\frac{1}{12\Delta x}[f(x_{n+2})-f(x_{n-2})],
+\end{align}
+where $f$ denotes any one of the three components of the velocity and $\Delta x$ is the width of the grid in the $x$ direction. The partial derivatives
+along $y$ and $z$ are computed in the same fashion. 
+Fig. \ref{fig:pdf} shows the distribution of the values of the norm of the vorticity field in the MHD dataset for a representative time-step. This is indicative 
+of how the values are distributed in the dataset as a whole.
+This coarse view of the data can be used by scientists to guide the selection of threshold values.
+
+- 3d and 4d clusters of highest vorticity locations. 
+
 Similar to the vorticity there are other fields of interest, which can be thresholded. These include ...
 
 \section{JHTDB}
+
+\begin{figure*}
+\centering
+\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
+\caption{Cache lookup.}
+\label{fig:cache_diagram}
+\end{figure*}
+
 The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
 Johns Hopkins Turbulence Databases (JHTDB). The JHTDB, built on top of the GrayWulf and DataScope clusters, serve as a public virtual laboratory for
 the study of turbulent phenomena. The JHTDB store several datasets, which are the output of high-resolution numerical simulations of turbulence.
@@ -334,13 +371,6 @@ top-$k$ queries from these tasks is the fact that they usually operate on small 
 threshold and top-$k$ queries usually have to examine the entire data volume. Furthermore, the data product of threshold and top-$k$ queries is much
 smaller in relation to the amount of data that need to be examined. This fact combined with the fact that subsequent queries can reuse previously
 computed results makes the query results suitable to caching. 
-
-\begin{figure*}
-\centering
-\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
-\caption{Cache lookup.}
-\label{fig:cache_diagram}
-\end{figure*}
 
 \section{Threshold Query Evaluation}
 
@@ -385,6 +415,13 @@ Therefore for a dataset containing
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a derived field for the entire dataset will
 require $\sim$5TB.
 
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/cache_overhead.pdf}
+\caption{Execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the absence of a cache.}
+\label{fig:cache_overhead}
+\end{figure}
+
 {\bf Overall execution of threshold queries}. The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
 asynchronously. Each node begins evaluation of the query by first performing a cache lookup. If the data for the requested field, time-step and spatial region
 are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
@@ -406,9 +443,10 @@ a threshold locally by the user.
 
 \begin{figure}
 \centering
-\includegraphics[width=3.35in]{Figures/PDF.pdf}
-\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
-\label{fig:pdf}
+\includegraphics[width=3.35in]{Figures/scaleup.pdf}
+\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The evaluation was performed utilizing 1-8
+threads per server showcasing the vertical scalability of the implementation.}
+\label{fig:scaleup}
 \end{figure}
 
 \subsection{Experimental Setup}
@@ -420,67 +458,26 @@ arrays. The tables storing the data are partitioned spatially along contiguous r
 database file. 
 
 For this evaluation we looked at the performance of threshold queries to the vorticity field. The vorticity field is representative of derived fields, which
-have to be computed from the stored data. The vorticity is computed from the velocity field by taking its curl:
-%\begin{align}
-%&\sum_{i_0=0}^{1} \sum_{i_1=0}^{1} ... \sum_{i_{d-1}=0}^{1} {(-1)}^{i_0 + i_1 + ...+ i_{d-1}}\cdot  \nonumber \\
-%&\qquad s(x_0(i_0), x_1(i_1), ..., x_{d-1}(i_{d-1}))
-%\label{eq:summed_volume}
-%\end{align}
-\begin{align}
-\vec{\omega} &= \vec{\nabla} \times \vec{v} = \left( \frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z} \right) 
-\times \nonumber \left( v_x, v_y, v_z \right)\\
-&= \left( \frac{\partial v_z}{\partial y} - \frac{\partial v_y}{\partial z}, \frac{\partial v_x}{\partial z} - \frac{\partial v_z}{\partial x}, 
-\frac{\partial v_y}{\partial x} - \frac{\partial v_x}{\partial y} \right).
-\label{eq:curl}
-\end{align}
-We use finite differencing methods of
-different orders for the evaluation of the curl. For example, with 4th-order centered finite differencing each partial derivative is evaluated from the 4
-adjacent grid node values as follows:  
-%\begin{align}
-%\frac{df}{dx}
-%\label{eq:curl}
-%\end{align}
-\begin{align} 
-\left.\frac{df}{dx}\right|_{x_n} = &\frac{2}{3\Delta x}[f(x_{n+1})-f(x_{n-1})]\nonumber\\ 
-&-\frac{1}{12\Delta x}[f(x_{n+2})-f(x_{n-2})],
-\end{align}
-where $f$ denotes any one of the three components of the velocity and $\Delta x$ is the width of the grid in the $x$ direction.
-To illustrate the distribution of the values for the norm of the vorticity field in the MHD dataset and to get an appreciation for the different threshold values
-used in the experiments we show a coarse view of the probability density function for the vorticity in Fig. \ref{fig:pdf}.  
+have to be computed from the stored data. It defined as the curl of the velocity field.
 As described in section \ref{science_use_cases}
-thresholding the vorticity field is important in the study of fluid dynamics and clustering the locations of maximum vorticity can lead to new insights into
+thresholding the vorticity field is important in the study of fluid dynamics and obtaining the locations of maximum vorticity can lead to new insights into
 the development of the most intense vortices that are observed. 
 %\kk{Consider showing other fields as well; possibly thresholding the velocity by itself}
 
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/cache_overhead.pdf}
-\caption{Execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the absence of a cache.}
-\label{fig:cache_overhead}
-\end{figure}
-
 \subsection{Evaluation of cache effectiveness}
-\begin{table}[h]
-\centering
-\begin{tabular}{|c|c|c|c|c|} \hline
-\multirow{2}{0.5in}{Threshold} & \multirow{2}{0.5in}{Points above threshold} & \multicolumn{3}{|c|}{Running time (s.)}\\ \cline{3-5}
-& & No cache & \parbox[t]{0.55in}{With cache (miss)} & \parbox[t]{0.55in}{With cache (hit)} \\ \hline
-80.0 & 4247 & 97.1 & 100.2 & 0.5\\ \hline
-60.0 & 86580 & 113.7 & 115.9 & 1.2\\ \hline
-44.0 & 909274 & 111.6 & 115.0 & 9.1\\ \hline
-\end{tabular}
-\caption{Effectiveness of caching.}
-\label{tab:cache_effectiveness}
-\end{table}
+
 The central part of the strategy that we have developed for the evaluation of threshold queries of derived fields is the application-aware cache, which
 stores the results of these queries. We first evaluate the overhead associated with the introduction and maintenance of the cache. Fig. \ref{fig:cache_overhead}
 compares the execution time of queries in the absence of a cache with the execution time of the same queries, which interrogate the cache first.
 For these experiments we requested
-the locations with norms of the vorticity above thresholds at different levels. For the first set the threshold was set high (80.0) and only $\sim$4,300 points 
+the locations with norms of the vorticity above thresholds at different levels. We refer the reader to Fig. \ref{fig:pdf}, which shows the distribution of values of
+the norm of the vorticity field in the MHD dataset to get an appreciation of the different threshold values used in the experiments. 
+For the first set the threshold was set high (80.0) and only $\sim$4,300 points 
 (or 0.0004\% of all points) were above the threshold. For the second set a medium threshold (60.0) was chosen and $\sim$87,000 points 
 (or 0.0081\% of all points) were above the threshold. Finally, a low threshold (44.0) was chosen for the last set with $\sim$900,000 points 
 (or 0.0847\% of all points) above the threshold. For each set a random
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
+
 The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
 Cache entries for the particular time-step queried were dropped before each run, making sure that each query would produce a cache miss and would
 have to be evaluated from the raw data. 
@@ -493,11 +490,24 @@ time that can be observed is due to the larger result set that has to be returne
 
 \begin{figure}
 \centering
-\includegraphics[width=3.35in]{Figures/scaleup.pdf}
-\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The evaluation was performed utilizing 1-8
-threads per server showcasing the vertical scalability of the implementation.}
-\label{fig:scaleup}
+\includegraphics[width=3.35in]{Figures/io_comparison.pdf}
+\caption{Execution time for threshold queries evaluated utilizing different number of
+threads per server compared with the time taken to perform the I/O only.}
+\label{fig:io_comparison}
 \end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|} \hline
+\multirow{2}{0.5in}{Threshold} & \multirow{2}{0.5in}{Points above threshold} & \multicolumn{3}{|c|}{Running time (s.)}\\ \cline{3-5}
+& & No cache & \parbox[t]{0.55in}{With cache (miss)} & \parbox[t]{0.55in}{With cache (hit)} \\ \hline
+80.0 & 4247 & 97.1 & 100.2 & 0.5\\ \hline
+60.0 & 86580 & 113.7 & 115.9 & 1.2\\ \hline
+44.0 & 909274 & 111.6 & 115.0 & 9.1\\ \hline
+\end{tabular}
+\caption{Effectiveness of caching.}
+\label{tab:cache_effectiveness}
+\end{table}
 
 Table \ref{tab:cache_effectiveness} shows the effectiveness of the cache in the case of a cache hit. It includes the data from Fig. \ref{fig:cache_overhead}
 for the cases of execution in the absence of a cache and for cache misses. In the last column we show the running time of queries for which there is a 
@@ -510,7 +520,8 @@ it is likely that all subsequent queries to this time-step will result in a cach
 
 \subsection{Scaling and Distributed Evaluation}
 The data-parallel evaluation of threshold queries exhibits good vertical scaling as shown in Fig. \ref{fig:scaleup}. For these experiments we used the same
-queries and threshold values as for the runs shown in Fig. \ref{fig:cache_overhead} but with varying number of threads per node. Cache entries for the
+queries and threshold values as for the runs shown in Fig. \ref{fig:cache_overhead} and Table \ref{tab:cache_effectiveness} 
+but with varying number of threads per node. Cache entries for the
 time-step queried were again dropped before each run in order to evaluate the scaling properties of the computation of the derived field from the stored data.
 The computations for all of 
 the derived fields of interest (such as the vorticity) at each gird point need data from adjacent grid points only. Therefore, each node of the cluster is able to
@@ -531,14 +542,6 @@ the time taken to perform the I/O only. The I/O time is about half of the total 
 observed for the I/O when additional threads are utilized. SQL Server already makes use of parallelism internally and the data have to be retrieved from the
 same set of disks. It is worth noting that the total running time for the queries evaluated with 4 or 8 threads is about the same as the time it takes to perform the
 I/O only with a single thread.
-
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/io_comparison.pdf}
-\caption{Execution time for threshold queries evaluated utilizing different number of
-threads per server compared with the time taken to perform the I/O only.}
-\label{fig:io_comparison}
-\end{figure}
 
 -- compare with local evaluation
 
@@ -569,7 +572,30 @@ we do not cache raw data objects, but rather query results. This substantially r
 
 \section{Conclusions and Future Work}
 
-- Lays the ground work for the creation of a landmark database, which could store the locations of the highest vorticity regions in the dataset.
+We have presented an efficient strategy for the evaluation of threshold queries of derived fields in large numerical simulation datasets. 
+The fields, which are thresholded are derived from the stored simulation data in a distributed data-parallel manner. The computations
+scale with the cluster resources and are performed on the database nodes, where the data are stored. This new capability allows researches to quickly
+obtain and focus on regions of special interest even if they lack the computing capabilities or data transfer rates necessary to examine entire time-steps
+or large parts of the entire dataset. 
+
+We have introduced an application-aware cache for the query results. The cache adds minimal overhead during the evaluation of queries even if there is
+a cache miss and has modest storage requirements. Cache hits reduce query running times by over an order of magnitude.
+
+The introduction of an application-aware cache for query results lays the ground work for the creation of a landmark database. Such a database can store the 
+locations of the highest vorticity regions in the dataset or more broadly regions of interest and their associated statistics.
+
+The Web-services approach to archived numerical simulation datasets provides public access to high quality simulation data to anyone with an internet
+connection. The Web-services methods can be called from any modern programming language and we provide C, Fortran and Matlab client libraries for the
+JHTDB. The evaluation of each query submitted through a Web-service call is carried out on the nodes of the database cluster by mens of a stored procedure
+or a user-defined function that has been implemented and deployed to handle these requests. This allows us to fine-tune the execution of these procedures
+and handle all requests transparently to the user. However, this approach also has drawbacks. Adding new functionality means adding to a long list of 
+Web-service calls and requires substantial implementation effort. In the case of threshold queries the stored procedure performing the evaluation must have
+an implementation for each derived field of interest even though the execution is handled by the same Web-service call. 
+
+In the future we plan to develop
+declarative and graphical user interfaces that will allow users to combine existing building blocks and perform computations that have not been explicitly
+implemented. Additionally, we plan on deploying a server-side computing environment for users similar to the CasJobs service for the Sloan Digital Sky Survery \cite{LiThakar}. In such an environment users can run queries in batch mode and save their results in a personal database called MyDB, which 
+will allow for much greater flexibility in the type of computations that can be performed in addition to substantially decreasing the network overhead.
 
 %% \section{The {\secit Body} of The Paper}
 %% Typically, the body of a paper is organized
@@ -879,6 +905,10 @@ we do not cache raw data objects, but rather query results. This substantially r
 %% %\end{document}  % This is where a 'short' article might terminate
 
 \section{Acknowledgment}
+
+The authors would like to thank the Turbulence Database Group at Johns Hopkins University for
+their insightful comments and suggestions. This work is supported in part by the National Science Foundation
+under Grants ....
 
 %% %ACKNOWLEDGMENTS are optional
 %% \section{Acknowledgments}

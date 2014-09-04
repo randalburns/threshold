@@ -290,55 +290,7 @@ we cache the actual results of the computation, which leads to query performance
 
 %-The evaluation is computationally limited and embarrassingly parallel, which makes it a good candidate for a GPU implementation.
 
-\section{Scientific Use Cases}\label{science_use_cases}
-
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/PDF.pdf}
-\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
-\label{fig:pdf}
-\end{figure}
-
-%Max vorticity clustering.
-One of the applications of thresholding in turbulence is to find the locations of maximum vorticity in a particular time-step or the dataset as a whole.
-The locations of maximum vorticity are usually associated with the most intense vortices in the dataset and often have interesting and complex
-reconnection events associated with them. 
-Once obtained from the service, these locations can be clustered in both 3d and 4d. This allows scientists to examine their evolution with the flow
-and make subsequent analysis queries as needed in order to study these events.
-
-The vorticity is computed from the velocity field by taking its curl:
-\begin{align}
-\vec{\omega} &= \vec{\nabla} \times \vec{v} = \left( \frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z} \right) 
-\times \nonumber \left( v_x, v_y, v_z \right)\\
-&= \left( \frac{\partial v_z}{\partial y} - \frac{\partial v_y}{\partial z}, \frac{\partial v_x}{\partial z} - \frac{\partial v_z}{\partial x}, 
-\frac{\partial v_y}{\partial x} - \frac{\partial v_x}{\partial y} \right).
-\label{eq:curl}
-\end{align}
-We use finite differencing methods of
-different orders for the evaluation of the curl. For example, with 4th-order centered finite differencing each partial derivative is evaluated from the 4
-adjacent grid node values as follows:  
-\begin{align} 
-\left.\frac{df}{dx}\right|_{x_n} = &\frac{2}{3\Delta x}[f(x_{n+1})-f(x_{n-1})]\nonumber\\ 
-&-\frac{1}{12\Delta x}[f(x_{n+2})-f(x_{n-2})],
-\end{align}
-where $f$ denotes any one of the three components of the velocity and $\Delta x$ is the width of the grid in the $x$ direction. The partial derivatives
-along $y$ and $z$ are computed in the same fashion. 
-Fig. \ref{fig:pdf} shows the distribution of the values of the norm of the vorticity field in the MHD dataset for a representative time-step. This is indicative 
-of how the values are distributed in the dataset as a whole.
-This coarse view of the data can be used by scientists to guide the selection of threshold values.
-
-- 3d and 4d clusters of highest vorticity locations. 
-
-Similar to the vorticity there are other fields of interest, which can be thresholded. These include ...
-
 \section{JHTDB}
-
-\begin{figure*}
-\centering
-\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
-\caption{Cache lookup.}
-\label{fig:cache_diagram}
-\end{figure*}
 
 The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
 Johns Hopkins Turbulence Databases (JHTDB). The JHTDB, built on top of the GrayWulf and DataScope clusters, serve as a public virtual laboratory for
@@ -372,7 +324,60 @@ threshold and top-$k$ queries usually have to examine the entire data volume. Fu
 smaller in relation to the amount of data that need to be examined. This fact combined with the fact that subsequent queries can reuse previously
 computed results makes the query results suitable to caching. 
 
+\section{Scientific Use Cases}\label{science_use_cases}
+
+%Max vorticity clustering.
+One of the applications of thresholding in turbulence is to find the locations of maximum vorticity in a particular time-step or the dataset as a whole.
+The locations of maximum vorticity are usually associated with the most intense vortices in the dataset and often have interesting and complex
+reconnection events associated with them. 
+Once obtained from the service, these locations can be clustered in both 3d and 4d. This allows scientists to examine their evolution with the flow
+and make subsequent analysis queries as needed in order to study these events.
+
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/PDF.pdf}
+\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
+\label{fig:pdf}
+\end{figure}
+
+The vorticity is computed from the velocity field by taking its curl:
+\begin{align}
+\vec{\omega} &= \vec{\nabla} \times \vec{v} = \left( \frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z} \right) 
+\times \nonumber \left( v_x, v_y, v_z \right)\\
+&= \left( \frac{\partial v_z}{\partial y} - \frac{\partial v_y}{\partial z}, \frac{\partial v_x}{\partial z} - \frac{\partial v_z}{\partial x}, 
+\frac{\partial v_y}{\partial x} - \frac{\partial v_x}{\partial y} \right).
+\label{eq:curl}
+\end{align}
+We use finite differencing methods of
+different orders for the evaluation of the curl. For example, with 4th-order centered finite differencing each partial derivative is evaluated from the 4
+adjacent grid node values as follows:  
+\begin{align} 
+\left.\frac{df}{dx}\right|_{x_n} = &\frac{2}{3\Delta x}[f(x_{n+1})-f(x_{n-1})]\nonumber\\ 
+&-\frac{1}{12\Delta x}[f(x_{n+2})-f(x_{n-2})],
+\end{align}
+where $f$ denotes any one of the three components of the velocity and $\Delta x$ is the width of the grid in the $x$ direction. The partial derivatives
+along $y$ and $z$ are computed in the same fashion. 
+Fig. \ref{fig:pdf} shows the distribution of the values of the norm of the vorticity field in the MHD dataset for a representative time-step. This is indicative 
+of how the values are distributed in the dataset as a whole.
+This coarse view of the data can be used by scientists to guide the selection of threshold values.
+
+- 3d and 4d clusters of highest vorticity locations. 
+
+In addition to obtaining the regions of largest vorticity there is substantial interest in studying the regions with highest values for other fields, such as
+the second and third velocity gradient invariants ($Q$ and $R$). These invariants are scalar quantities whose values contain information about the 
+topology of the flow and the rates of vortex stretching and rotation. In MHD finding the locations with largest values for the electric current
+can lead to new insights into the development of the most intense reconnection events of magnetic field sheets in the simulated plasma. Similarly to
+the vorticity the electric current is derived from the magnetic field by taking its curl. The list of fields of interest, which scientists would like to perform 
+threshold queries on certainly does not stop here and is indicative of how valuable this functionality is in the study of turbulence and fluid dynamics.
+
 \section{Threshold Query Evaluation}
+
+\begin{figure*}
+\centering
+\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
+\caption{Cache lookup.}
+\label{fig:cache_diagram}
+\end{figure*}
 
 Threshold queries of derived fields submitted to the JHTDB are evaluated using a data-parallel execution strategy and the query results are 
 cached in an application-aware cache. The evaluation strategy for queries that do not hit the cache is driven by the spatial partitioning of the 
@@ -478,6 +483,19 @@ For the first set the threshold was set high (80.0) and only $\sim$4,300 points
 (or 0.0847\% of all points) above the threshold. For each set a random
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
 
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|} \hline
+\multirow{2}{0.5in}{Threshold} & \multirow{2}{0.5in}{Points above threshold} & \multicolumn{3}{|c|}{Running time (s.)}\\ \cline{3-5}
+& & No cache & \parbox[t]{0.55in}{With cache (miss)} & \parbox[t]{0.55in}{With cache (hit)} \\ \hline
+80.0 & 4247 & 97.1 & 100.2 & 0.5\\ \hline
+60.0 & 86580 & 113.7 & 115.9 & 1.2\\ \hline
+44.0 & 909274 & 111.6 & 115.0 & 9.1\\ \hline
+\end{tabular}
+\caption{Effectiveness of caching.}
+\label{tab:cache_effectiveness}
+\end{table}
+
 The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
 Cache entries for the particular time-step queried were dropped before each run, making sure that each query would produce a cache miss and would
 have to be evaluated from the raw data. 
@@ -495,19 +513,6 @@ time that can be observed is due to the larger result set that has to be returne
 threads per server compared with the time taken to perform the I/O only.}
 \label{fig:io_comparison}
 \end{figure}
-
-\begin{table}[h]
-\centering
-\begin{tabular}{|c|c|c|c|c|} \hline
-\multirow{2}{0.5in}{Threshold} & \multirow{2}{0.5in}{Points above threshold} & \multicolumn{3}{|c|}{Running time (s.)}\\ \cline{3-5}
-& & No cache & \parbox[t]{0.55in}{With cache (miss)} & \parbox[t]{0.55in}{With cache (hit)} \\ \hline
-80.0 & 4247 & 97.1 & 100.2 & 0.5\\ \hline
-60.0 & 86580 & 113.7 & 115.9 & 1.2\\ \hline
-44.0 & 909274 & 111.6 & 115.0 & 9.1\\ \hline
-\end{tabular}
-\caption{Effectiveness of caching.}
-\label{tab:cache_effectiveness}
-\end{table}
 
 Table \ref{tab:cache_effectiveness} shows the effectiveness of the cache in the case of a cache hit. It includes the data from Fig. \ref{fig:cache_overhead}
 for the cases of execution in the absence of a cache and for cache misses. In the last column we show the running time of queries for which there is a 

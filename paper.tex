@@ -48,6 +48,10 @@
 \documentclass{sig-alternate}
 
 \usepackage{subfigure}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{varwidth}
 \usepackage{listings}
 \usepackage[usenames,dvipsnames]{color}
 \usepackage{multirow}
@@ -114,6 +118,17 @@ escapeinside={\%*}{*)},          % if you want to add a comment within your code
 % morekeywords={char,double}    % if you want to add more keywords to the set
 frameround=fttt
 }
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+
+\makeatletter
+\let\OldStatex\Statex
+\renewcommand{\Statex}[1][3]{%
+  \setlength\@tempdima{\algorithmicindent}%
+  \OldStatex\hskip\dimexpr#1\@tempdima\relax}
+\makeatother
 
 \newcommand{\kk}[1]{{\color{blue}{\it KK: #1}}}
 
@@ -329,12 +344,12 @@ The Web-server assembles the results from the distributed computation and sends 
 \label{fig:pdf}
 \end{figure}
 
-\begin{figure*}
-\centering
-\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
-\caption{Cache lookup.}
-\label{fig:cache_diagram}
-\end{figure*}
+%\begin{figure*}
+%\centering
+%\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
+%\caption{Cache lookup.}
+%\label{fig:cache_diagram}
+%\end{figure*}
 
 The JHTDB provide a variety of data-intensive analysis routines that are executed on the database nodes. These include interpolation, 
 differentiation, particle tracking and spatial filtering. These tasks are often data-intensive and in order to leverage the capabilities of the cluster we
@@ -428,8 +443,67 @@ Therefore for a dataset containing
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
 require $\sim$5TB (15TB for vector fields).
 
-{\bf Overall execution of threshold queries}. The overall execution of threshold queries to the JHTDB is the following. The mediator submits a query to each of the database nodes storing the raw data
-asynchronously. Each node begins evaluation of the query by first performing a cache lookup. If the data for the requested field, time-step and spatial region
+\begin{algorithm}
+\caption{Get points above threshold using cache}\label{alg:cache_lookup}
+\begin{algorithmic}[1]
+\Require Dataset $d$, Field $f$, Timestep $t$, Threshold $k$, Query box $q = [x_l,y_l,z_l,x_u,y_u,z_u]$
+\Procedure{GetThreshold}{}
+\State $points \gets List()$
+\State $updateCache \gets false$
+\State $query \gets \text{SELECT * FROM cachedb..cacheInfo}$
+\Statex[4] $\text{WHERE dataset = {\it d} AND field = {\it f}}$
+\Statex[4] $\text{AND timestep = {\it t}}$
+\State $command \gets SqlCommand(query)$
+\State $reader \gets command.ExecuteReader()$
+\If {$reader.HasRows()$}
+\State $k_s \gets reader[``threshold"]$ \Comment{Stored threshold}
+\State $start \gets reader[``startIndex"]$
+\State $end \gets reader[``endIndex"]$
+\State $ordinal \gets reader[``ordinal"]$
+\If {$k \le k_s \And q \in \text{[start, end]}$}
+\State $\textit{query} \gets \text{SELECT * FROM cachedb..cacheData}$
+\Statex[4] $\text{WHERE cacheInfoOrdinal = {\it ordinal}}$
+\State $command \gets SqlCommand(query)$
+\State $reader \gets command.ExecuteReader()$
+\While{reader.Read()}
+\State $location \gets reader[``zindex"]$
+\State $norm \gets reader[``dataValue"]$
+\If {$norm \ge k \And location \in q$}
+\State $\textit{points.Add(new Point(location, norm))}$
+\EndIf
+\EndWhile
+\Else
+\State $updateCache \gets true$
+\EndIf
+\Else
+\State $updateCache \gets true$
+\EndIf
+\If {$updateCache$}
+\State $\text{Retrieve data covering {\it q} from DB.}$
+\ForAll{$p \in q$}
+\State{Compute $f$ at $p$.}
+\If{$\| f(p) \| \ge k$}
+\State $\textit{points.Add(new Point(p, $\| f(p) \|$))}$
+\EndIf
+\EndFor
+\State{Update cacheInfo and cacheData tables.}
+\EndIf
+\State{\Return $points$}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
+dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
+of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
+the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
+lookup.
+
+{\bf Overall execution of threshold queries}. Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
+above the given threshold from the database in the presence of a cache. We described the overall execution of threshold queries to the JHTDB below. 
+The mediator submits a query to each of the database nodes storing the raw data
+asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. First a cache lookup is performed.
+If the data for the requested field, time-step and spatial region
 are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
 retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
 cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
@@ -438,30 +512,19 @@ adjacent nodes as needed. The specified field is derived at each location on the
 the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
 for the new records, space is freed up by removing the least recently used data.  Reading from, updating or modifying the cache is done within a
 transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction. This
-provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel. Figure \ref{fig:cache_diagram} illustrates 
-this process.
-
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/cache_overhead.pdf}
-\caption{Execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the absence of a cache.}
-\label{fig:cache_overhead}
-\end{figure}
+provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 
 benefits and overhead from the introduction of the application-aware cache. We also analyze the scaling properties of the method. Finally, we show
 that an integrated method that performs the evaluation on the database nodes near the data is several orders of magnitude faster than evaluating
 a threshold locally by the user.
-
-\begin{figure*}
+\begin{figure}
 \centering
-\subfigure[Vertical Scaling]{\includegraphics[width=3.35in]{Figures/scaleup.pdf}\label{fig:scaleup}}
-\subfigure[Horizontal Scaling]{\includegraphics[width=3.35in]{Figures/scaleout.pdf}\label{fig:scaleout}}
-\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The vertical scaling evaluation was performed 
-utilizing 1-8 threads per server on a 4-node cluster. The horizontal scaling evaluation was performed on 1 through 8 nodes.}
-\label{fig:scaling}
-\end{figure*}
+\includegraphics[width=3.35in]{Figures/cache_overhead.pdf}
+\caption{Execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the absence of a cache.}
+\label{fig:cache_overhead}
+\end{figure}
 
 \subsection{Experimental Setup}
 The experiments were run on the production database nodes of the JHTDB through a development Web-server hosting the Web-services. We used
@@ -479,6 +542,15 @@ the development of the most intense vortices that are observed.
 %\kk{Consider showing other fields as well; possibly thresholding the velocity by itself}
 
 \subsection{Evaluation of cache effectiveness}
+
+\begin{figure*}
+\centering
+\subfigure[Vertical Scaling]{\includegraphics[width=3.35in]{Figures/scaleup.pdf}\label{fig:scaleup}}
+\subfigure[Horizontal Scaling]{\includegraphics[width=3.35in]{Figures/scaleout.pdf}\label{fig:scaleout}}
+\caption{Execution time for threshold queries at different threshold levels -- high, medium and low. The vertical scaling evaluation was performed 
+utilizing 1-8 threads per server on a 4-node cluster. The horizontal scaling evaluation was performed on 1 through 8 nodes.}
+\label{fig:scaling}
+\end{figure*}
 
 The central part of the strategy that we have developed for the evaluation of threshold queries of derived fields is the application-aware cache, which
 stores the results of these queries. We first evaluate the overhead associated with the introduction and maintenance of the cache. Fig. \ref{fig:cache_overhead}

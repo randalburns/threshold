@@ -392,10 +392,10 @@ This coarse view of the data can be used by scientists to guide the selection of
 
 Fig. \ref{fig:max_vort_cluster} shows the most intense event observed in the MHD dataset. The locations of maximum vorticity in the dataset were clustered
 in this case in 4d using a friends-of-friends algorithm. It is interesting to note that the cluster containing the most intense event in the entire dataset develops
-from nothing (i.e. it does not appear in the first few time-steps) and it takes less than the timespan stored in the database for it to develop. The timespan stored
-is equal to about one large eddy turnover time. It is not clear whether a different more intense event could emerge from an existing cluster if the timespan stored
-was larger. Fig. \ref{fig:max_vort_cluster} also shows that most interactions between worms are not simple. There are several worms interacting in a complex
-way at the same time.
+from nothing (i.e. it does not appear in the first few time-steps) and it takes less than the timespan stored in the database for it to develop. 
+The timespan stored is equal to about one large eddy turnover time. It is not clear whether a different more intense event could emerge from an existing
+cluster if the timespan stored was larger. Fig. \ref{fig:max_vort_cluster} also shows that most interactions between worms are not simple. 
+There are several worms interacting in a complex way at the same time.
 
 In addition to obtaining the regions of largest vorticity there is substantial interest in studying the regions with highest values for other fields, such as
 the second and third velocity gradient invariants ($Q$ and $R$). These invariants are scalar quantities whose values contain information about the 
@@ -449,6 +449,28 @@ Therefore for a dataset containing
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
 require $\sim$5TB (15TB for vector fields).
 
+The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
+dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
+of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
+the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
+lookup.
+
+{\bf Overall execution of threshold queries}. Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
+above the given threshold from the database in the presence of a cache. We described the overall execution of threshold queries to the JHTDB below. 
+The mediator submits a query to each of the database nodes storing the raw data
+asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. 
+First a cache lookup is performed.
+If the data for the requested field, time-step and spatial region
+are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
+retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
+cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
+parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested from
+adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is compared against
+the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
+for the new records, space is freed up by removing the least recently used data.  Reading from, updating or modifying the cache is done within a
+transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction. This
+provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
+
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
 \begin{algorithmic}[1]
@@ -498,27 +520,6 @@ require $\sim$5TB (15TB for vector fields).
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
-
-The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
-dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
-of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
-the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
-lookup.
-
-{\bf Overall execution of threshold queries}. Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
-above the given threshold from the database in the presence of a cache. We described the overall execution of threshold queries to the JHTDB below. 
-The mediator submits a query to each of the database nodes storing the raw data
-asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. First a cache lookup is performed.
-If the data for the requested field, time-step and spatial region
-are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
-retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
-cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
-parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested from
-adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is compared against
-the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not have enough space
-for the new records, space is freed up by removing the least recently used data.  Reading from, updating or modifying the cache is done within a
-transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the cache for each transaction. This
-provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 

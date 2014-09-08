@@ -351,7 +351,8 @@ One of the applications of thresholding in turbulence is to find the locations o
 The locations of maximum vorticity are usually associated with the most intense vortices in the dataset and often have interesting and complex
 reconnection events associated with them. 
 Once obtained from the service, these locations can be clustered in both 3d and 4d. This allows scientists to examine their evolution with the flow
-and make subsequent analysis queries as needed in order to study these events.
+and make subsequent analysis queries as needed in order to study these events. The relationship between different worms that connect and reconnect
+at those locations is of the most interest.
 
 The vorticity is computed from the velocity field by taking its curl:
 \begin{align}
@@ -374,7 +375,12 @@ Fig. \ref{fig:pdf} shows the distribution of the values of the norm of the vorti
 of how the values are distributed in the dataset as a whole.
 This coarse view of the data can be used by scientists to guide the selection of threshold values.
 
-- 3d and 4d clusters of highest vorticity locations. 
+Fig. \ref{fig:max_vort_cluster} shows the most intense event observed in the MHD dataset. The locations of maximum vorticity in the dataset were clustered
+in this case in 4d using a friends-of-friends algorithm. It is interesting to note that the cluster containing the most intense event in the entire dataset develops
+from nothing (i.e. it does not appear in the first few time-steps) and it takes less than the timespan stored in the database for it to develop. The timespan stored
+is equal to about one large eddy turnover time. It is not clear whether a different more intense event could emerge from an existing cluster if the timespan stored
+was larger. Fig. \ref{fig:max_vort_cluster} also shows that most interactions between worms are not simple. There are several worms interacting in a complex
+way at the same time.
 
 In addition to obtaining the regions of largest vorticity there is substantial interest in studying the regions with highest values for other fields, such as
 the second and third velocity gradient invariants ($Q$ and $R$). These invariants are scalar quantities whose values contain information about the 

@@ -659,7 +659,7 @@ threads per server compared with the time taken to perform the I/O only.}
 So far we have presented the effectiveness of evaluating threshold queries of derived fields on the database cluster storing the raw simulation data. The 
 data-parallel computation of the derived fields allows us to evaluate a threshold query over
 an entire $1024^3$ time-step part of a 20TB dataset in less than two minutes. The introduction of an application-aware cache for the query results of these
-queries reduced this time to several seconds when there is a cache hit. In contrast, an evaluation of this functionality performed locally by the user takes
+queries reduces this time to several seconds when there is a cache hit. In contrast, an evaluation of this functionality performed locally by the user takes
 over 20 hours. To perform the evaluation locally the user requests the derived field of interest from the database by submitting multiple queries over
 subregions of a time-step. This is necessary as requesting a derived field over an entire time-step will overload the network. Derived fields may have even
 more components than the scalar or vector field stored in the database. For example, the velocity gradient (needed for the computation of the vorticity) has 9
@@ -669,6 +669,18 @@ field of interest is obtained locally the user has to threshold it to get the fi
 requested to yield a small in size result. 
 
 \section{Related Work}
+Only select few database systems offer support for arrays as first-class citizens. Even fewer provide the fault-tolerance, scalability and availability guarantees 
+necessary for a system managing multi-terabyte datasets in a production setting. This is part of the reason why we have chosen to represent the array simulation
+data in the JHTDB as a collection of binary large objects in a standard relational DBMS and perform the array manipulation tasks necessary at the application level.
+The systems that provide
+support for arrays and aim to handle large array data efficiently are RasDaMan \cite{Rasdaman}, SciDB \cite{Scidb} and MonetDB/SciQL \cite{Sciql}. RasDaMan
+partitions raster objects into tiles, which are stored in a traditional relational database system. This approach is similar to how the numerical simulation data is 
+handled in the JHTDB. RasDaMan provides RasQL \cite{Rasql}, which is a SQL-92 based query language for the manipulation of raster images. SciDB is 
+an array database system build from the ground up. It partitions arrays vertically into overlapping chunks. SciDB provides a declarative Array Query Language (AQL)
+and an Array Functional Language (AFL). Users can create arrays with named dimensions with AQL and make use of the functional operators defined in AFL, such
+as SLICE, SUBSAMPLE, SJOIN, FILTER and APPLY. SciQL's focus is on language design and the integration with SQL:2003 syntax and semantics. It is implemented
+within the MoneDB framework \cite{MonetDB}.
+
 The processing of top-$k$ queries has been studied extensively in the context of distributed and relational database systems. A survey of different techniques
 in the case of centralized processing is given in \cite{Ilyas}. In the case of distributed processing different approaches focus on horizontally 
 \cite{Balke, Vlachou} or vertically \cite{Cao, Chaudhuri, Guntzer, Marian, Michel} distributed data. None of these approaches deals with array data stored in

@@ -339,8 +339,8 @@ The Web-server assembles the results from the distributed computation and sends 
 
 \begin{figure}
 \centering
-\includegraphics[width=3.35in]{Figures/pdf.pdf}
-\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
+\includegraphics[width=3.35in]{Figures/vorticity_histogram.pdf}
+\caption{Tail of the histogram of the norm $\omega$ of the vorticity field over the isotropic Navier-Stokes dataset. $\sqrt{\langle \omega ^2\rangle}$ is computed over the entire dataset.}
 \label{fig:pdf}
 \end{figure}
 
@@ -386,14 +386,15 @@ adjacent grid node values as follows:
 \end{align}
 where $f$ denotes any one of the three components of the velocity and $\Delta x$ is the width of the grid in the $x$ direction. The partial derivatives
 along $y$ and $z$ are computed in the same fashion. 
-Fig. \ref{fig:pdf} shows the distribution of the values of the norm of the vorticity field in the MHD dataset for a representative time-step. This is indicative 
-of how the values are distributed in the dataset as a whole.
-This coarse view of the data can be used by scientists to guide the selection of threshold values.
+Fig. \ref{fig:pdf} shows the distribution of the large values of the norm of the vorticity for the isotropic Navier-Stokes dataset.
+This result can be used to estimate the number of points returned by a given threshold value (the integral of this curve must simply be divided by the total number of frames).
 
-\begin{figure}
+\begin{figure}[h]
 \centering
 \includegraphics[width=3.35in]{Figures/most_intense_cluster.png}
-\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
+\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.
+Lines parallel to the axes are given for reference: red, green and blue correspond to $x$, $y$ and $z$, respectively;
+their lengths are the extents of the structure on each axis, which are approximately $0.55 \pi \times 0.40 \pi \times 0.17 \pi$.}
 \label{fig:max_vort_cluster}
 \end{figure}
 
@@ -569,6 +570,9 @@ utilizing 1-8 threads per server on a 4-node cluster. The horizontal scaling eva
 The central part of the strategy that we have developed for the evaluation of threshold queries of derived fields is the application-aware cache, which
 stores the results of these queries. We first evaluate the overhead associated with the introduction and maintenance of the cache. Fig. \ref{fig:cache_overhead}
 compares the execution time of queries in the absence of a cache with the execution time of the same queries, which interrogate the cache first.
+\textcolor{red}{Chichi: The following refers to the PDF made by Kalin; should we include that one as well or change this text?
+I just realized that the values are different since Kalin used the MHD dataset...
+Not only that, the statistics will be different as well, since the structures have different shapes.}
 For these experiments we requested
 the locations with norms of the vorticity above thresholds at different levels. We refer the reader to Fig. \ref{fig:pdf}, which shows the distribution of values of
 the norm of the vorticity field in the MHD dataset to get an appreciation of the different threshold values used in the experiments. 

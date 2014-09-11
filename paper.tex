@@ -366,7 +366,7 @@ One of the applications of thresholding in turbulence is to find the locations o
 The locations of maximum vorticity are usually associated with the most intense vortices in the dataset and often have interesting and complex
 reconnection events associated with them. 
 Once obtained from the service, these locations can be clustered in both 3d and 4d. This allows scientists to examine their evolution with the flow
-and make subsequent analysis queries as needed in order to study these events. The relationship between different worms that connect and reconnect
+and make subsequent analysis queries as needed in order to study these events. The relationship between different ``worms'' (see figure \ref{fig:max_vort_cluster}) that connect and reconnect
 at those locations is of the most interest.
 
 The vorticity is computed from the velocity field by taking its curl:
@@ -390,14 +390,12 @@ Fig. \ref{fig:pdf} shows the distribution of the values of the norm of the vorti
 of how the values are distributed in the dataset as a whole.
 This coarse view of the data can be used by scientists to guide the selection of threshold values.
 
-\begin{figure}[h]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=3.35in]{Figures/most_intense_cluster.png}
-\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.
-Lines parallel to the axes are given for reference: red, green and blue correspond to $x$, $y$ and $z$, respectively;
-their lengths are the extents of the structure on each axis, which are approximately $0.55 \pi \times 0.40 \pi \times 0.17 \pi$.}
+\includegraphics[width=7in]{Figures/most_intense_cluster_alt.pdf}
+\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
 \label{fig:max_vort_cluster}
-\end{figure}
+\end{figure*}
 
 Fig. \ref{fig:max_vort_cluster} shows the most intense event observed in the MHD dataset. The locations of maximum vorticity in the dataset were clustered
 in this case in 4d using a friends-of-friends algorithm. It is interesting to note that the cluster containing the most intense event in the entire dataset develops

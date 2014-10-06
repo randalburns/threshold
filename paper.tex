@@ -288,6 +288,13 @@ caches cannot exploit dataset-specific structure and application-level informati
 application-independent caches the
 computation associated with the derived field still needs to be performed for each point on the grid as results of previous computations are not cached. 
 
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/jhtdb_diagram.pdf}
+\caption{Architectrue of the JHTDB.}
+\label{fig:jhtdb_diagram}
+\end{figure}
+
 %Why is it interesting and important?
 Thresholding allows scientists to obtain and examine the most intense regions and features in the dataset in the case of turbulence. 
 These are often the locations that have the largest vorticity norms and have intense vortices or reconnection events. 
@@ -306,7 +313,7 @@ Database systems support rollup queries, including top-$k$ queries, but in most 
 queries apply only simple linear score functions on the attribute values of individual records \cite{Ilyas}.
 Additionally, many top-$k$ query evaluation techniques rely on the score functions being monotone in order to perform early pruning.
 This is an assumption that we cannot make for the functions used to compute all the different possible derived fields of interest in fluid mechanics.
-Even approaches that aim to work with general score functions \cite{TODO} assume that the function operates on the attributes of a single record.
+Even approaches that aim to work with general score functions \cite{Deshpande, Xin} assume that the function operates on the attributes of a single record.
 In contrast our approach computes the value of a derived field at each location in the array by examining the data at all neighboring locations, which
 are within the kernel of the computation. 
 
@@ -335,23 +342,24 @@ The cache that we describe is therefore a limited version of a semantic cache.
 
 \section{JHTDB}\label{jhtdb}
 
-The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
-Johns Hopkins Turbulence Databases (JHTDB). The JHTDB, built on top of the GrayWulf and Data-Scope clusters, serve as a public virtual laboratory for
-the study of turbulent phenomena. The JHTDB store several datasets, which are the output of high-resolution numerical simulations of turbulence.
-The 3d time-series data are partitioned into small sub-cubes and stored in relational databases distributed across the nodes of the cluster.
-Access to the data is provided by means of Web-services and a variety of analysis functions have been
-implemented and can be executed through Web-service calls.
-At present the service hosts four datasets, which are available publicly. 
-The data are the output of numerical simulations of forced isotropic turbulence, magnetohydrodynamics (MHD), channel 
-flow turbulence and homogenous buoyancy driven turbulence.
-The total amount of space occupied by the datasets is over 230 TB. 
-
 \begin{figure*}[t]
 \centering
 \includegraphics[width=7in]{Figures/most_intense_cluster_alt.pdf}
 \caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
 \label{fig:max_vort_cluster}
 \end{figure*}
+
+The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
+Johns Hopkins Turbulence Databases (JHTDB) \cite{Yi, Perlman}. The JHTDB, built on top of the GrayWulf and Data-Scope clusters, serve as a public
+virtual laboratory for
+the study of turbulent phenomena. The JHTDB store several datasets, which are the output of high-resolution numerical simulations of turbulence.
+The 3d time-series data are partitioned into small sub-cubes and stored in relational databases distributed across the nodes of the cluster.
+Access to the data is provided by means of Web-services and a variety of analysis functions have been
+implemented and can be executed through Web-service calls (Fig. \ref{fig:jhtdb_diagram}).
+At present the service hosts four datasets, which are available publicly. 
+The data are the output of numerical simulations of forced isotropic turbulence, magnetohydrodynamics (MHD), channel 
+flow turbulence and homogenous buoyancy driven turbulence.
+The total amount of space occupied by the datasets is over 230 TB. 
 
 The database nodes are part of the GrayWulf \cite{Szalay} and Data-Scope \cite{DataScope} clusters. Each node
 is running Windows Server 2008 and SQL Server 2008 R2. The data for each dataset reside on a regular three-dimensional spatial grid with the
@@ -454,6 +462,33 @@ against the specified threshold and if the value is higher it is maintained alon
 the spatial coordinates of the location in a list. We limit the maximum size of this list to around 1,000,000 locations in order to prevent having to return
 the entire time-step or a significant fraction of it for queries with thresholds that are set too low. 
 
+{\bf Application-aware cache for query results:} A central part of the evaluation strategy for threshold queries that we have developed is the 
+introduction of an application-aware cache
+for query results. The results of these queries are small compared to the amount of data that need to be examined and the results can be used to
+answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node has a local 
+cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
+used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
+avoid dirty-reads or an inconsistent view of the cache. 
+
+Caching the query results
+preserves the computational effort in addition to substantially reducing I/O. The cached data are for the particular derived field that was queried
+and not the raw data fields.
+Thus, we do not have to derive the requested field from the raw data for 
+queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
+a small set of data and do not need to perform any additional computation.
+
+%\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
+%and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
+%computation accessing multiple data points in a kernel around the target location.}
+
+The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
+Given a limit of $\sim$1,000,000 points per time-step for a threshold query, the space required to cache the maximum number of points including the index
+space and database overhead is $\sim$40MB. 
+Therefore for a dataset containing 
+1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
+results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
+require $\sim$5TB (15TB for vector fields).
+
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
 \begin{algorithmic}[1]
@@ -503,33 +538,6 @@ the entire time-step or a significant fraction of it for queries with thresholds
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
-
-{\bf Application-aware cache for query results:} A central part of the evaluation strategy for threshold queries that we have developed is the 
-introduction of an application-aware cache
-for query results. The results of these queries are small compared to the amount of data that need to be examined and the results can be used to
-answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node has a local 
-cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
-used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
-avoid dirty-reads or an inconsistent view of the cache. 
-
-Caching the query results
-preserves the computational effort in addition to substantially reducing I/O. The cached data are for the particular derived field that was queried
-and not the raw data fields.
-Thus, we do not have to derive the requested field from the raw data for 
-queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
-a small set of data and do not need to perform any additional computation.
-
-%\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
-%and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
-%computation accessing multiple data points in a kernel around the target location.}
-
-The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
-Given a limit of $\sim$1,000,000 points per time-step for a threshold query, the space required to cache the maximum number of points including the index
-space and database overhead is $\sim$40MB. 
-Therefore for a dataset containing 
-1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
-results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
-require $\sim$5TB (15TB for vector fields).
 
 The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
 dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
@@ -687,18 +695,6 @@ processes per server compared with the time taken to perform the I/O only.}
 \label{fig:io_comparison}
 \end{figure}
 
-So far we have presented the effectiveness of evaluating threshold queries of derived fields on the database cluster storing the raw simulation data. The 
-data-parallel computation of the derived fields allows us to evaluate a threshold query over
-an entire $1024^3$ time-step part of a 20TB dataset in less than two minutes. The introduction of an application-aware cache for the query results of these
-queries reduces this time to several seconds when there is a cache hit. In contrast, an evaluation of this functionality performed locally by the user takes
-over 20 hours. To perform the evaluation locally the user requests the derived field of interest from the database by submitting multiple queries over
-subregions of a time-step. This is necessary as requesting a derived field over an entire time-step will overload the network. Derived fields may have even
-more components than the scalar or vector field stored in the database. For example, the velocity gradient (needed for the computation of the vorticity) has 9
-components compared with the 3 components of the velocity. Given a single-precision floating-point representation, this makes the velocity gradient of an
-entire time-step at least 36GB in size. A Web-service request will be much larger due to the overhead of wrapping the data in an xml format. After the
-field of interest is obtained locally the user has to threshold it to get the final result, which is reasonably fast, but discards most of the data that have been
-requested to yield a small in size result. 
-
 \begin{figure*}
 \centering
 \subfigure[Vorticity]{\includegraphics[width=2.2in]{Figures/vorticity_breakdown.pdf}\label{fig:vorticity_breakdown}}
@@ -710,6 +706,18 @@ requested to yield a small in size result.
 \caption{Breakdown of the execution time for threshold queries requesting different fields and at different threshold levels -- high, medium and low.}
 \label{fig:breakdown}
 \end{figure*}
+
+So far we have presented the effectiveness of evaluating threshold queries of derived fields on the database cluster storing the raw simulation data. The 
+data-parallel computation of the derived fields allows us to evaluate a threshold query over
+an entire $1024^3$ time-step part of a 20TB dataset in less than two minutes. The introduction of an application-aware cache for the query results of these
+queries reduces this time to several seconds when there is a cache hit. In contrast, an evaluation of this functionality performed locally by the user takes
+over 20 hours. To perform the evaluation locally the user requests the derived field of interest from the database by submitting multiple queries over
+subregions of a time-step. This is necessary as requesting a derived field over an entire time-step will overload the network. Derived fields may have even
+more components than the scalar or vector field stored in the database. For example, the velocity gradient (needed for the computation of the vorticity) has 9
+components compared with the 3 components of the velocity. Given a single-precision floating-point representation, this makes the velocity gradient of an
+entire time-step at least 36GB in size. A Web-service request will be much larger due to the overhead of wrapping the data in an xml format. After the
+field of interest is obtained locally the user has to threshold it to get the final result, which is reasonably fast, but discards most of the data that have been
+requested to yield a small in size result. 
 
 \subsection{Execution Time Breakdown}
 \kk{OR}

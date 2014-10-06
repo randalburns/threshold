@@ -288,13 +288,6 @@ caches cannot exploit dataset-specific structure and application-level informati
 application-independent caches the
 computation associated with the derived field still needs to be performed for each point on the grid as results of previous computations are not cached. 
 
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/jhtdb_diagram.pdf}
-\caption{Architectrue of the JHTDB.}
-\label{fig:jhtdb_diagram}
-\end{figure}
-
 %Why is it interesting and important?
 Thresholding allows scientists to obtain and examine the most intense regions and features in the dataset in the case of turbulence. 
 These are often the locations that have the largest vorticity norms and have intense vortices or reconnection events. 
@@ -317,6 +310,13 @@ Even approaches that aim to work with general score functions \cite{Deshpande, X
 In contrast our approach computes the value of a derived field at each location in the array by examining the data at all neighboring locations, which
 are within the kernel of the computation. 
 
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/jhtdb_diagram.pdf}
+\caption{Architectrue of the JHTDB.}
+\label{fig:jhtdb_diagram}
+\end{figure}
+
 %What are the key components of my approach and results? Also include any specific limitations.
 We present a method for the efficient evaluation of threshold queries over fields derived from the raw vector or scalar fields of the numerical simulation 
 stored in the database. The derived fields, which our method computes and operates on are derived by performing kernel computations over the array data 
@@ -331,23 +331,9 @@ on the concept of semantic caching \cite{Ren}. Rather than caching just data as 
 we cache the actual results of the computation, which leads to query performance improvement of over an order of magnitude.
 The cache that we describe is therefore a limited version of a semantic cache.
 
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/pdf.pdf}
-\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
-\label{fig:pdf}
-\end{figure}
-
 %-The evaluation is computationally limited and embarrassingly parallel, which makes it a good candidate for a GPU implementation.
 
 \section{JHTDB}\label{jhtdb}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=7in]{Figures/most_intense_cluster_alt.pdf}
-\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
-\label{fig:max_vort_cluster}
-\end{figure*}
 
 The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
 Johns Hopkins Turbulence Databases (JHTDB) \cite{Yi, Perlman}. The JHTDB, built on top of the GrayWulf and Data-Scope clusters, serve as a public
@@ -402,6 +388,13 @@ Once obtained from the service, these locations can be clustered in both 3d and 
 and make subsequent analysis queries as needed in order to study these events. The relationship between different ``worms'' (see Figure \ref{fig:max_vort_cluster}) that connect and reconnect
 at those locations is of the most interest.
 
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/pdf.pdf}
+\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
+\label{fig:pdf}
+\end{figure}
+
 The vorticity is computed from the velocity field by taking its curl:
 \begin{align}
 \vec{\omega} &= \vec{\nabla} \times \vec{v} = \left( \frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z} \right) 
@@ -422,6 +415,13 @@ along $y$ and $z$ are computed in the same fashion.
 Figure \ref{fig:pdf} shows the distribution of the values of the norm of the vorticity field in the MHD dataset for a representative time-step. This is indicative 
 of how the values are distributed in the dataset as a whole.
 This coarse view of the data can be used by scientists to guide the selection of threshold values.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=7in]{Figures/most_intense_cluster_alt.pdf}
+\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
+\label{fig:max_vort_cluster}
+\end{figure*}
 
 Figure \ref{fig:max_vort_cluster} shows the most intense event observed in the MHD dataset. The locations of maximum vorticity in the dataset were clustered
 in this case in 4d using a friends-of-friends algorithm. It is interesting to note that the cluster containing the most intense event in the entire dataset develops
@@ -489,6 +489,12 @@ Therefore for a dataset containing
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
 require $\sim$5TB (15TB for vector fields).
 
+The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
+dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
+of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
+the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
+lookup.
+
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
 \begin{algorithmic}[1]
@@ -538,12 +544,6 @@ require $\sim$5TB (15TB for vector fields).
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
-
-The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
-dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
-of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
-the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
-lookup.
 
 {\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
 above the given threshold from the database in the presence of a cache. 

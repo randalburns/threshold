@@ -232,7 +232,7 @@ Data-intensive computations that examine entire time-steps of the simulation dat
 locally and can take days or months to iterate over the entire dataset. 
 The integrated method for the evaluation of threshold queries that we have developed achieves scalability through data-parallel execution
 of the computations on the nodes of the database cluster. 
-We extend the database system with the introduction of an application-aware cache for query results, building on the concept of semantic caching.
+We extend the scientific database cluster with the introduction of an application-aware cache for query results, building on the concept of semantic caching.
 The cache has little overhead and improves query performance by over an order of magnitude for queries that hit the cache.
 \end{abstract}
 
@@ -305,13 +305,13 @@ all of the functionality that scientists are interested in out of the box. It is
 capabilities have to be built-in through user-defined functions or stored procedures. 
 
 Database systems support rollup queries, including top-$k$ queries, but in most cases these
-queries apply only simple linear score functions on the attribute values of individual records \cite{Ilyas}.
+queries apply only simple linear score functions on the attribute values of individual records.
 Additionally, many top-$k$ query evaluation techniques rely on the score functions being monotone in order to perform early pruning (see \cite{Ilyas} for a
 survey of top-$k$ evaluation strategies).
 This is an assumption that we cannot make for the functions used to compute all the different possible derived fields of interest in fluid mechanics.
 Even approaches that aim to work with general score functions \cite{Deshpande, Xin} assume that the function operates on the attributes of a single record.
-In contrast our approach computes the value of a derived field at each location in the array by examining the data at all neighboring locations, which
-are within the kernel of the computation. 
+In contrast our approach computes the value of a \emph{derived} field at each location in the array by examining the data at all neighboring locations, which
+are within the kernel of the computation. The functions used to the derive the field may even be non-linear.
 Finally, a top-$k$ approach may not be suitable in the cases where scientists are interested in performing threshold queries at different time-steps as the
 same threshold level will produce different number of points in the result set for different time-steps.
 
@@ -324,8 +324,8 @@ same threshold level will produce different number of points in the result set f
 
 %What are the key components of my approach and results? Also include any specific limitations.
 We present a method for the efficient evaluation of threshold queries over fields derived from the raw vector or scalar fields of the numerical simulation 
-stored in the database. The derived fields, which our method computes and operates on are derived by performing kernel computations over the array data 
-stored in the database.
+stored in the database. The derived fields, which our method computes and operates on are derived by performing kernel computations over the 
+stored array data.
 Our method makes effective use of the cluster resources and achieves high throughput and scalability. 
 We exploit the parallelism 
 available in the cluster by means of data-parallel execution of the computations. Each computation is distributed across the nodes of the cluster and
@@ -483,6 +483,11 @@ Thus, we do not have to derive the requested field from the raw data for
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
 
+Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
+locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
+reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries and is therefore a 
+limited version of a semantic cache. Nevertheless, it can easily be extended to cache the results of other query types as well if that becomes advantageous.
+
 %\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
 %and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
 %computation accessing multiple data points in a kernel around the target location.}
@@ -494,6 +499,28 @@ Therefore for a dataset containing
 1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
 require $\sim$5TB (15TB for vector fields).
+
+The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
+dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
+of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
+the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
+lookup.
+
+{\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
+above the given threshold from the database in the presence of a cache. 
+The mediator submits a query to each of the database nodes storing the raw data
+asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. 
+First a cache lookup is performed.
+If the data for the requested field, time-step and spatial region
+are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
+retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
+cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
+parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested
+from adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is
+compared against the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not
+have enough space for the new records, space is freed up by removing the least recently used data across all quantities. Reading from, updating or
+modifying the cache is done within a transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the 
+cache for each transaction. This provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
@@ -544,28 +571,6 @@ require $\sim$5TB (15TB for vector fields).
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
-
-The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
-dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
-of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
-the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
-lookup.
-
-{\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
-above the given threshold from the database in the presence of a cache. 
-The mediator submits a query to each of the database nodes storing the raw data
-asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. 
-First a cache lookup is performed.
-If the data for the requested field, time-step and spatial region
-are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
-retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
-cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
-parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested
-from adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is
-compared against the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not
-have enough space for the new records, space is freed up by removing the least recently used data across all quantities. Reading from, updating or
-modifying the cache is done within a transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the 
-cache for each transaction. This provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 
@@ -633,7 +638,7 @@ misses. The slight increase in the running time that can be observed is due to t
 \begin{table}[h]
 \centering
 \begin{tabular}{|c|c|c|c|c|} \hline
-\multirow{2}{0.5in}{Threshold} & \multirow{2}{0.5in}{Points above threshold} & \multicolumn{3}{|c|}{Average Running time (s.)}\\ \cline{3-5}
+\multirow{2}{0.5in}{Vorticity threshold} & \multirow{2}{0.5in}{Points above threshold} & \multicolumn{3}{|c|}{Average Running time (s.)}\\ \cline{3-5}
 & & No cache & \parbox[t]{0.55in}{With cache (miss)} & \parbox[t]{0.55in}{With cache (hit)} \\ \hline
 80.0 & 4247 & 97.1 & 100.2 & 0.5\\ \hline
 60.0 & 86580 & 113.7 & 115.9 & 1.2\\ \hline
@@ -683,16 +688,6 @@ the addition of database nodes to the cluster but also from the increased memory
 read into memory and the larger memory size means that there is less contention with other system and application processes and it is less likely that
 virtual memory needs to be used. SQL Server also benefits from a larger buffer pool, which reduces the I/O time.
 
-As expected we observe even weaker speedup when the queries perform nothing but I/O and the number of processes per node is increased.
-Figure \ref{fig:io_comparison} compares the running time of the queries with a medium threshold and executed with varying number of processes per 
-node with
-the time taken to perform the I/O only. The I/O time is about half of the total running time for these queries. SQL Server already makes use of parallelism
-internally and the data have to be retrieved from the same set of disks. Nevertheless, the I/O time does decrease with additional processes, this is because
-the data reside in a partitioned table and the data in each partition are placed in a separate file on one of the disk arrays. Depending on how the data
-requests are scheduled in SQL Server this allows for the disks arrays to be driven in parallel. Additionally, with more processes per node the data can
-also be consumed faster. It is worth noting that the total running time for the queries evaluated with 4 or 8
-processes is about the same as the time it takes to perform the I/O only with a single process.
-
 \begin{figure}
 \centering
 \includegraphics[width=3.35in]{Figures/io_comparison.pdf}
@@ -712,6 +707,16 @@ processes per server compared with the time taken to perform the I/O only.}
 \caption{Breakdown of the execution time for threshold queries requesting different fields and at different threshold levels -- high, medium and low.}
 \label{fig:breakdown}
 \end{figure*}
+
+As expected we observe even weaker speedup when the queries perform nothing but I/O and the number of processes per node is increased.
+Figure \ref{fig:io_comparison} compares the running time of the queries with a medium threshold and executed with varying number of processes per 
+node with
+the time taken to perform the I/O only. The I/O time is about half of the total running time for these queries. SQL Server already makes use of parallelism
+internally and the data have to be retrieved from the same set of disks. Nevertheless, the I/O time does decrease with additional processes, this is because
+the data reside in a partitioned table and the data in each partition are placed in a separate file on one of the disk arrays. Depending on how the data
+requests are scheduled in SQL Server this allows for the disks arrays to be driven in parallel. Additionally, with more processes per node the data can
+also be consumed faster. It is worth noting that the total running time for the queries evaluated with 4 or 8
+processes is about the same as the time it takes to perform the I/O only with a single process.
 
 So far we have presented the effectiveness of evaluating threshold queries of derived fields on the database cluster storing the raw simulation data. The 
 data-parallel computation of the derived fields allows us to evaluate a threshold query over
@@ -781,7 +786,7 @@ the evaluation of kernel computations at each data point.
 
 Zhao et al. propose an algorithm for the processing of top-$k$ queries in large-scale distributed environments called BRANCA \cite{Zhao}. They build on the 
 idea of semantic caching \cite{Ren} and make use of branch caches, which store results of previous top-$k$ queries with respect to the data stored on each server.
-The caching mecahnism that we use is similar in that regard, but the queries that are evaluated in our system operate on derived fields, which are computed
+The caching mechanism that we use is similar in that regard, but the queries that are evaluated in our system operate on derived fields, which are computed
 at each location by accessing data from a surrounding region. The queries described in \cite{Zhao} operate over the attributes of individual records only using
 simple linear score functions.
 

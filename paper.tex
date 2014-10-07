@@ -230,7 +230,8 @@ Such simulations are commonplace in the study of many different physical phenome
 The datasets produced by these simulations are in the TB and even PB ranges. 
 Data-intensive computations that examine entire time-steps of the simulation data are impractical to perform
 locally and can take days or months to iterate over the entire dataset. 
-The integrated method for the evaluation of threshold queries that we have developed achieves scalability through data-parallel execution. 
+The integrated method for the evaluation of threshold queries that we have developed achieves scalability through data-parallel execution
+of the computations on the nodes of the database cluster. 
 We extend the database system with the introduction of an application-aware cache for query results, building on the concept of semantic caching.
 The cache has little overhead and improves query performance by over an order of magnitude for queries that hit the cache.
 \end{abstract}
@@ -302,13 +303,17 @@ datasets. The virtual laboratories built on these systems make use of relational
 Relational database systems however often do not support
 all of the functionality that scientists are interested in out of the box. It is either up to the user to develop more sophisticated analysis routines locally or such
 capabilities have to be built-in through user-defined functions or stored procedures. 
+
 Database systems support rollup queries, including top-$k$ queries, but in most cases these
 queries apply only simple linear score functions on the attribute values of individual records \cite{Ilyas}.
-Additionally, many top-$k$ query evaluation techniques rely on the score functions being monotone in order to perform early pruning.
+Additionally, many top-$k$ query evaluation techniques rely on the score functions being monotone in order to perform early pruning (see \cite{Ilyas} for a
+survey of top-$k$ evaluation strategies).
 This is an assumption that we cannot make for the functions used to compute all the different possible derived fields of interest in fluid mechanics.
 Even approaches that aim to work with general score functions \cite{Deshpande, Xin} assume that the function operates on the attributes of a single record.
 In contrast our approach computes the value of a derived field at each location in the array by examining the data at all neighboring locations, which
 are within the kernel of the computation. 
+Finally, a top-$k$ approach may not be suitable in the cases where scientists are interested in performing threshold queries at different time-steps as the
+same threshold level will produce different number of points in the result set for different time-steps.
 
 \begin{figure}
 \centering
@@ -374,7 +379,8 @@ The JHTDB provide a variety of data-intensive analysis routines that are execute
 differentiation, particle tracking and spatial filtering. These tasks are often data-intensive and in order to leverage the capabilities of the cluster we
 have developed data-driven batch processing techniques for their evaluation \cite{KanovSC11, KanovSC12}. What differentiates threshold and
 top-$k$ queries from these tasks is the fact that they usually operate on small subsets of the space or a collection of individual target locations, whereas
-threshold and top-$k$ queries usually have to examine the entire data volume of a time-step. Furthermore, the data product of threshold and top-$k$ 
+threshold and top-$k$ queries usually have to examine the entire data volume of a time-step or a signification portion of it. Furthermore, the data product 
+of threshold and top-$k$ 
 queries is much smaller in relation to the amount of data that need to be examined. This fact combined with the fact that subsequent queries can reuse 
 previously computed results makes the query results suitable to caching. 
 
@@ -445,8 +451,8 @@ Threshold queries of derived fields submitted to the JHTDB are evaluated using a
 cached in an application-aware cache, which is a limited version of a semantic cache. 
 The evaluation strategy for queries that do not hit the cache is driven by the spatial partitioning of the data across the nodes of the cluster.
 
-{\bf Derived fields computation:} The databases store only the raw field data from the simulation (e.g. velocity, pressure, etc.). However, the threshold
-queries of most interest to science users produce all locations where the values of a derived field are above a given threshold. Thus, the
+{\bf Derived fields computation:} The databases store only the raw field data from the simulation (e.g. velocity, pressure, magnetic field etc.). However,
+the threshold queries of most interest to science users produce all locations where the values of a \emph{derived} field are above a given threshold. Thus, the
 derived field in question has to be computed from the raw data first. For most derived fields of interest, this computation has local support. It has an 
 associated localized kernel of computation around each grid node. Therefore, the value of the derived field at each grid node depends on the value of the
 stored field at all of the grid locations, which are part of the kernel of computation. 
@@ -472,7 +478,7 @@ avoid dirty-reads or an inconsistent view of the cache.
 
 Caching the query results
 preserves the computational effort in addition to substantially reducing I/O. The cached data are for the particular derived field that was queried
-and not the raw data fields.
+and not the raw data of the simulation fields.
 Thus, we do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
@@ -488,12 +494,6 @@ Therefore for a dataset containing
 1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
 results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
 require $\sim$5TB (15TB for vector fields).
-
-The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
-dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
-of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
-the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
-lookup.
 
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
@@ -544,6 +544,12 @@ lookup.
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
+
+The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
+dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
+of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
+the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
+lookup.
 
 {\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
 above the given threshold from the database in the presence of a cache. 
@@ -710,8 +716,9 @@ processes per server compared with the time taken to perform the I/O only.}
 So far we have presented the effectiveness of evaluating threshold queries of derived fields on the database cluster storing the raw simulation data. The 
 data-parallel computation of the derived fields allows us to evaluate a threshold query over
 an entire $1024^3$ time-step part of a 20TB dataset in less than two minutes. The introduction of an application-aware cache for the query results of these
-queries reduces this time to several seconds when there is a cache hit. In contrast, an evaluation of this functionality performed locally by the user takes
-over 20 hours. To perform the evaluation locally the user requests the derived field of interest from the database by submitting multiple queries over
+queries reduces this time to several seconds when there is a cache hit. In contrast, one of our science collaborators reported that his evaluation of this
+functionality performed locally would take over 20 hours to complete. 
+To perform the evaluation locally the user requests the derived field of interest from the database by submitting multiple queries over
 subregions of a time-step. This is necessary as requesting a derived field over an entire time-step will overload the network. Derived fields may have even
 more components than the scalar or vector field stored in the database. For example, the velocity gradient (needed for the computation of the vorticity) has 9
 components compared with the 3 components of the velocity. Given a single-precision floating-point representation, this makes the velocity gradient of an
@@ -719,8 +726,6 @@ entire time-step at least 36GB in size. A Web-service request will be much large
 field of interest is obtained locally the user has to threshold it to get the final result, which is reasonably fast, but discards most of the data that have been
 requested to yield a small in size result. 
 
-\subsection{Execution Time Breakdown}
-\kk{OR}
 \subsection{Evaluation of Additional Fields}
 The data-parallel evaluation of threshold queries shows stable execution time for different derived fields in addition to the different threshold levels and
 time-steps queried. The execution times depend on the complexity of the computation needed to evaluate the particular derived field requested. Figures 
@@ -737,11 +742,11 @@ Q-criterion. The magnetic field is one of the raw fields of the magnetohydrodyna
 additional computation needed to derive it from the data, every data point has to be simply compared with the threshold level specified. This is why the 
 computation time is much smaller compared to the queries for the vorticity and the Q-criterion. The I/O time for the magnetic field is also smaller. This is
 because its kernel of computation is a single point and therefore there are no additional data along the boundary that have to be requested from adjacent 
-nodes. In that case all of the data needed are available locally.
+nodes. In that case all of the data needed are available locally for each database node.
 
-In all of these cases the time take to interrogate the cache is negligible. The mediator time to distribute the queries and assemble the results as well as the
-time to transfer them to the user are also substantially smaller than the I/O and computation times. As expected they increase with the number of points in
-the result set.
+In all of these cases the time taken to interrogate the cache is negligible. The mediator time to distribute the queries and assemble the results as well as the
+time to transfer them to the user are also substantially smaller than the I/O and computation times. As expected they increase proportionally to the number
+of points in the result set.
 
 It is interesting to note that the time taken to perform a cache lookup is relatively small even in the case of a cache hit as can be seen in Figures 
 \ref{fig:vorticity_breakdown_cachehit}, \ref{fig:q_breakdown_cachehit}, \ref{fig:magnetic_breakdown_cachehit}. This is because the cache tables reside on
@@ -758,11 +763,11 @@ necessary for a system managing multi-terabyte datasets in a production setting.
 data in the JHTDB as a collection of binary large objects in a standard relational DBMS and perform the array manipulation tasks necessary at the application level.
 The systems that provide
 support for arrays and aim to handle large array data efficiently are RasDaMan \cite{Rasdaman}, SciDB \cite{Scidb} and MonetDB/SciQL \cite{Sciql}. RasDaMan
-partitions raster objects into tiles, which are stored in a traditional relational database system. This approach is similar to how the numerical simulation data is 
-handled in the JHTDB. RasDaMan provides RasQL \cite{Rasql}, which is a SQL-92 based query language for the manipulation of raster images. SciDB is 
-an array database system build from the ground up. Array attributes are partitioned vertically and each attribute array is decomposed into overlapping chunks.
-SciDB provides a declarative Array Query Language (AQL) and an Array Functional Language (AFL). Users can create arrays with named dimensions with
-AQL and make use of the functional operators defined in AFL, such
+partitions raster objects into tiles, which are stored in a traditional relational database system. This approach is similar to how the numerical simulation data
+are handled in the JHTDB. RasDaMan provides RasQL \cite{Rasql}, which is a SQL-92 based query language for the manipulation of raster images. SciDB
+is an array database system build from the ground up. Array attributes are partitioned vertically and each attribute array is decomposed into overlapping
+chunks. SciDB provides a declarative Array Query Language (AQL) and an Array Functional Language (AFL). Users can create arrays with named
+dimensions with AQL and make use of the functional operators defined in AFL, such
 as SLICE, SUBSAMPLE, SJOIN, FILTER and APPLY. SciQL's focus is on language design and the integration with SQL:2003 syntax and semantics. It is implemented
 within the MonetDB framework \cite{MonetDB}.
 
@@ -810,7 +815,8 @@ locations of the highest vorticity regions in the dataset or more broadly region
 
 The Web-services approach to archived numerical simulation datasets provides public access to high quality simulation data to anyone with an internet
 connection. The Web-services methods can be called from any modern programming language and we provide C, Fortran and Matlab client libraries for the
-JHTDB. The evaluation of each query submitted through a Web-service call is carried out on the nodes of the database cluster by mens of a stored procedure
+JHTDB. The evaluation of each query submitted through a Web-service call is carried out on the nodes of the database cluster by means of a stored
+procedure
 or a user-defined function that has been implemented and deployed to handle these requests. This allows us to fine-tune the execution of these procedures
 and handle all requests transparently to the user. However, this approach also has drawbacks. Adding new functionality means adding to a long list of 
 Web-service calls and requires substantial implementation effort. In the case of threshold queries the stored procedure performing the evaluation must have
@@ -819,7 +825,15 @@ an implementation for each derived field of interest even though the execution i
 In the future we plan to develop
 declarative and graphical user interfaces that will allow users to combine existing building blocks and perform computations that have not been explicitly
 implemented. Additionally, we plan on deploying a server-side computing environment for users similar to the CasJobs service for the Sloan Digital Sky Survery \cite{LiThakar}. In such an environment users can run queries in batch mode and save their results in a personal database called MyDB, which 
-will allow for much greater flexibility in the type of computations that can be performed in addition to substantially decreasing the network overhead.
+resides on the servers near the data.
+This will allow for much greater flexibility in the type of computations that can be performed in addition to substantially decreasing the network overhead.
+
+%\section{Acknowledgment}
+
+%The authors would like to thank the Turbulence Database Group at Johns Hopkins University for
+%their insightful comments and suggestions. This work is supported in part by the National Science Foundation
+%under Grants ....
+
 
 %% \section{The {\secit Body} of The Paper}
 %% Typically, the body of a paper is organized
@@ -1127,12 +1141,6 @@ will allow for much greater flexibility in the type of computations that can be 
 %% do with the present subject and are used as
 %% examples only.
 %% %\end{document}  % This is where a 'short' article might terminate
-
-\section{Acknowledgment}
-
-The authors would like to thank the Turbulence Database Group at Johns Hopkins University for
-their insightful comments and suggestions. This work is supported in part by the National Science Foundation
-under Grants ....
 
 %% %ACKNOWLEDGMENTS are optional
 %% \section{Acknowledgments}

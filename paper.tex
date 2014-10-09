@@ -802,6 +802,12 @@ perform query reordering. This work has inspired the use of an application-aware
 we do not cache raw data objects, but rather query results. This substantially reduces the size of the cache and improves query performance. Additionally, 
 the cache that we introduce resides on disk rather than in memory, which greatly increases its potential size.
 
+Andrade et al. \cite{Andrade} describe a database system and an optimization framework build on the concept of \emph{active semantic caching}. An
+active semantic cache aims to fully or partially reuse cached query results or aggregates through automated transformations of these aggregates. Similarly
+to our work they focus on real scientific data-analysis applications. The method that we have developed for the evaluation of threshold queries complements
+the active semantic caching approach and could be used in that framework. Our work has focused on extending a relational database system (Microsoft's SQL
+Server) as opposed to designing a new database system from the ground up as is the case in \cite{Andrade}.
+
 \section{Conclusions and Future Work}
 
 We have presented an efficient strategy for the evaluation of threshold queries of derived fields in large numerical simulation datasets. 

@@ -317,7 +317,7 @@ same threshold level will produce different number of points in the result set f
 \begin{figure}
 \centering
 \includegraphics[width=3.35in]{Figures/jhtdb_diagram.pdf}
-\caption{Architectrue of the JHTDB.}
+\caption{Architecture of the JHTDB.}
 \label{fig:jhtdb_diagram}
 \end{figure}
 
@@ -357,6 +357,13 @@ The data are the output of numerical simulations of forced isotropic turbulence,
 flow turbulence and homogenous buoyancy driven turbulence.
 The total amount of space occupied by the datasets is over 230 TB. 
 
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/pdf.pdf}
+\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
+\label{fig:pdf}
+\end{figure}
+
 The database nodes are part of the GrayWulf \cite{Szalay} and Data-Scope \cite{DataScope} clusters. Each node
 is running Windows Server 2008 and SQL Server 2008 R2. The data for each dataset reside on a regular three-dimensional spatial grid with the
 exception of the channel flow data, which has an irregular $y$ dimension. The data are partitioned spatially across 4 to 8
@@ -372,13 +379,6 @@ The Web-server acts as a mediator sending the users' requests to the database no
 Each request is broken down into multiple parts based on the spatial layout of the data. Each part is asynchronously submitted for evaluation 
 to the database which stores the data needed for the evaluation.
 The Web-server assembles the results from the distributed computation and sends them back to the client.
-
-%\begin{figure*}
-%\centering
-%\includegraphics[width=6.5in]{Figures/cache_diagram.pdf}
-%\caption{Cache lookup.}
-%\label{fig:cache_diagram}
-%\end{figure*}
 
 The JHTDB provide a variety of data-intensive analysis routines that are executed on the database nodes. These include interpolation, 
 differentiation, particle tracking and spatial filtering. These tasks are often data-intensive and in order to leverage the capabilities of the cluster we
@@ -398,12 +398,12 @@ Once obtained from the service, these locations can be clustered in both 3d and 
 and make subsequent analysis queries as needed in order to study these events. The relationship between different ``worms'' (see Figure \ref{fig:max_vort_cluster}) that connect and reconnect
 at those locations is of the most interest.
 
-\begin{figure}
+\begin{figure*}[t]
 \centering
-\includegraphics[width=3.35in]{Figures/pdf.pdf}
-\caption{Probability density function of the norm of the vorticity field for a representative time-step for the MHD dataset.}
-\label{fig:pdf}
-\end{figure}
+\includegraphics[width=7in]{Figures/most_intense_cluster_alt.pdf}
+\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
+\label{fig:max_vort_cluster}
+\end{figure*}
 
 The vorticity is computed from the velocity field by taking its curl:
 \begin{align}
@@ -425,13 +425,6 @@ along $y$ and $z$ are computed in the same fashion.
 Figure \ref{fig:pdf} shows the distribution of the values of the norm of the vorticity field in the MHD dataset for a representative time-step. This is indicative 
 of how the values are distributed in the dataset as a whole.
 This coarse view of the data can be used by scientists to guide the selection of threshold values.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=7in]{Figures/most_intense_cluster_alt.pdf}
-\caption{3D (fixed frame) cut through the 4D cluster containing the most intense event.}
-\label{fig:max_vort_cluster}
-\end{figure*}
 
 Figure \ref{fig:max_vort_cluster} shows the most intense event observed in the MHD dataset. The locations of maximum vorticity in the dataset were clustered
 in this case in 4d using a friends-of-friends algorithm. It is interesting to note that the cluster containing the most intense event in the entire dataset develops
@@ -476,11 +469,19 @@ the entire time-step or a significant fraction of it for queries with thresholds
 
 {\bf Application-aware cache for query results:} A central part of the evaluation strategy for threshold queries that we have developed is the 
 introduction of an application-aware cache
-for query results. The results of these queries are small compared to the amount of data that need to be examined and the results can be used to
-answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node has a local 
-cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
+for query results (Fig. \ref{fig:cache_diagram}). The results of these queries are small compared to the amount of data that need to be examined and the
+results can be used to answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node 
+has a local cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
 used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
 avoid dirty-reads or an inconsistent view of the cache. 
+
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/cache_diagram.pdf}
+\caption{Distributed evaluation of threshold queries and architecture of the application-aware cache. 
+Each database node has local cache tables, which reside on solid-state drives attached to the node.}
+\label{fig:cache_diagram}
+\end{figure}
 
 Caching the query results
 preserves the computational effort in addition to substantially reducing I/O. The cached data are for the particular derived field that was queried
@@ -511,22 +512,6 @@ dataset, field, time-step, start and end coordinates of the spatial region exami
 of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
 the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
 lookup.
-
-{\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
-above the given threshold from the database in the presence of a cache. 
-The mediator submits a query to each of the database nodes storing the raw data
-asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. 
-First a cache lookup is performed.
-If the data for the requested field, time-step and spatial region
-are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
-retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
-cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
-parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested
-from adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is
-compared against the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not
-have enough space for the new records, space is freed up by removing the least recently used data across all quantities. Reading from, updating or
-modifying the cache is done within a transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the 
-cache for each transaction. This provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
@@ -577,6 +562,22 @@ cache for each transaction. This provides for a higher degree of parallelism and
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
+
+{\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
+above the given threshold from the database in the presence of a cache. 
+The mediator submits a query to each of the database nodes storing the raw data
+asynchronously. Each node begins evaluation of the query by executing Algorithm \ref{alg:cache_lookup}. 
+First a cache lookup is performed.
+If the data for the requested field, time-step and spatial region
+are available in the cache and if the specified threshold is higher than the one stored in the cache the query can be answered from there. The records are
+retrieved from the cache and the ones that have a higher value are returned to the mediator and subsequently back to the user. If the data stored in the
+cache have a higher threshold than the one requested the cache needs to be updated. Similarly, if the cache does not have an entry for the specified 
+parameters the query needs to be evaluated from the raw data. In those cases the raw data are read into memory with data along the boundary requested
+from adjacent nodes as needed. The specified field is derived at each location on the grid and the norm or absolute value of the field is
+compared against the threshold. The locations where the values are higher than the threshold need to then be stored in the cache. If the cache does not
+have enough space for the new records, space is freed up by removing the least recently used data across all quantities. Reading from, updating or
+modifying the cache is done within a transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the 
+cache for each transaction. This provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 
@@ -633,18 +634,6 @@ For the first set the threshold was set high (80.0) and only $\sim$4,300 points
 (or 0.0847\% of all points) above the threshold. For each set a random
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
 
-As we can see from the results shown in Figure \ref{fig:cache_overhead} the overhead associated with querying the cache first is minimal, 
-less than 3\% and within the margin of error.
-The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
-During the ``cache-miss" runs cache entries for the particular time-step queried were dropped before each run, making sure that each query would
-produce a cache miss and would have to be evaluated from the raw data. 
-The execution times were averaged over 10 runs.
-We utilized 4 processes per database node for the evaluation of each query. 
-The method shows stable running time across different time-steps and threshold levels in the absence of a cache and during cache misses.
-The running time increases slightly only because of the larger result set that has to be returned to the user.
-%Additionally, the method shows stable running time across different time-steps and threshold levels even with cache
-%misses. The slight increase in the running time that can be observed is due to the larger result set that has to be returned to the user.
-
 \begin{table}[h]
 \centering
 \begin{tabular}{|c|c|c|c|c|} \hline
@@ -657,6 +646,18 @@ The running time increases slightly only because of the larger result set that h
 \caption{Effectiveness of caching.}
 \label{tab:cache_effectiveness}
 \end{table}
+
+As we can see from the results shown in Figure \ref{fig:cache_overhead} the overhead associated with querying the cache first is minimal, 
+less than 3\% and within the margin of error.
+The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
+During the ``cache-miss" runs cache entries for the particular time-step queried were dropped before each run, making sure that each query would
+produce a cache miss and would have to be evaluated from the raw data. 
+The execution times were averaged over 10 runs.
+We utilized 4 processes per database node for the evaluation of each query. 
+The method shows stable running time across different time-steps and threshold levels in the absence of a cache and during cache misses.
+The running time increases slightly only because of the larger result set that has to be returned to the user.
+%Additionally, the method shows stable running time across different time-steps and threshold levels even with cache
+%misses. The slight increase in the running time that can be observed is due to the larger result set that has to be returned to the user.
 
 Cache hits reduce the running time of threshold queries by over an order of magnitude as shown in Figure \ref{fig:cache_overhead} and
 Table \ref{tab:cache_effectiveness}. This is because we do not have to compute the derived
@@ -765,9 +766,9 @@ of points in the result set.
 
 It is interesting to note that the time taken to perform a cache lookup is relatively small even in the case of a cache hit as can be seen in Figures 
 \ref{fig:vorticity_breakdown_cachehit}, \ref{fig:q_breakdown_cachehit}, \ref{fig:magnetic_breakdown_cachehit}. This is because the cache tables reside on
-SSDs attached to each database node and retrieving the data is always done through a clustered index lookup. In the cases of a cache hit the majority of
-the time is spent simply transferring the results from the database nodes to the mediator and then back to the user. These times remain more or less
-constant between the cases of cache misses and cache hits (top row and bottom row of Fig. \ref{fig:breakdown}).
+SSDs attached to each database node (see Fig. \ref{fig:cache_diagram}) and retrieving the data is always done through a clustered index lookup.
+In the cases of a cache hit the majority of the time is spent simply transferring the results from the database nodes to the mediator and then back to the user.
+These times remain more or less constant between the cases of cache misses and cache hits (top row and bottom row of Fig. \ref{fig:breakdown}).
 Caching the results of threshold queries
 effectively preserves the I/O and computational effort spent during their initial evaluation and results in over an order of magnitude speedup for all the
 different fields requested as we can see in Figure \ref{fig:breakdown}.
@@ -816,7 +817,7 @@ Andrade et al. \cite{Andrade} describe a database system and an optimization fra
 active semantic cache aims to fully or partially reuse cached query results or aggregates through automated transformations of these aggregates. Similarly
 to our work they focus on real scientific data-analysis applications. The method that we have developed for the evaluation of threshold queries complements
 the active semantic caching approach and could be used in that framework. Our work has focused on extending a relational database system (Microsoft's SQL
-Server) as opposed to designing a new database system from the ground up as Andrade et al. \cite{Andrade}.
+Server) as opposed to designing a new database system from the ground up as described by Andrade et al. \cite{Andrade}.
 
 \section{Conclusions and Future Work}
 

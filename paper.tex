@@ -56,68 +56,12 @@
 \usepackage[usenames,dvipsnames]{color}
 \usepackage{multirow}
 \usepackage{array}
-%\usepackage{natbib}% bold math
 \newcommand{\ddx}[2]{ \frac{ \partial #1}{ \partial {#2} } }
-%\newcommand{\ddt}[1]{ \frac{\partial #1}{\partial t} }
 \newcommand{\ddt}[1]{\partial_t #1}
 \newcommand{\Grad}[1]{\nabla #1}
 \newcommand{\Div}[1]{\Grad \cdot #1}
 \newcommand{\Lap}[1]{\Delta #1}
 \definecolor{light-gray}{gray}{0.95}
-
-\lstdefinestyle{cxx}{ %
-language=C++,
-basicstyle=\footnotesize\ttfamily,  % the size of the fonts that are used for the code
-% numbers=left,                   % where to put the line-numbers
-% numberstyle=\footnotesize,      % the size of the fonts that are used for the line-numbers
-% stepnumber=2,                   % the step between two line-numbers. If it's 1 each line will be numbered
-% numbersep=5pt,                  % how far the line-numbers are from the code
-% backgroundcolor=\color{white},  % choose the background color. You must add \usepackage{color}
-backgroundcolor=\color{light-gray},  % choose the background color. You must add \usepackage{color}
-showspaces=false,               % show spaces adding particular underscores
-commentstyle=\color{cyan},
-stringstyle=\ttfamily\color{red},
-showstringspaces=false,         % underline spaces within strings
-showtabs=false,                 % show tabs within strings adding particular underscores
-frame=single,                 % adds a frame around the code
-tabsize=2,                      % sets default tabsize to 2 spaces
-captionpos=b,                   % sets the caption-position to bottom
-breaklines=true,                % sets automatic line breaking
-breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
-title=\lstname,                 % show the filename of files included with \lstinputlisting; also try caption instead of title
-% morekeywords={char,double},
-escapeinside={\%*}{*)},          % if you want to add a comment within your code
-% morekeywords={*,...}          % if you want to add more keywords to the set
-% morekeywords={char,double}    % if you want to add more keywords to the set
-frameround=fttt
-}
-
-\lstdefinestyle{fortran}{ %
-language=Fortran,
-basicstyle=\footnotesize\ttfamily,  % the size of the fonts that are used for the code
-% numbers=left,                   % where to put the line-numbers
-% numberstyle=\footnotesize,      % the size of the fonts that are used for the line-numbers
-% stepnumber=2,                   % the step between two line-numbers. If it's 1 each line will be numbered
-% numbersep=5pt,                  % how far the line-numbers are from the code
-% backgroundcolor=\color{white},  % choose the background color. You must add \usepackage{color}
-backgroundcolor=\color{light-gray},  % choose the background color. You must add \usepackage{color}
-showspaces=false,               % show spaces adding particular underscores
-commentstyle=\color{cyan},
-stringstyle=\ttfamily\color{red},
-showstringspaces=false,         % underline spaces within strings
-showtabs=false,                 % show tabs within strings adding particular underscores
-frame=single,                 % adds a frame around the code
-tabsize=2,                      % sets default tabsize to 2 spaces
-captionpos=b,                   % sets the caption-position to bottom
-breaklines=true,                % sets automatic line breaking
-breakatwhitespace=false,        % sets if automatic breaks should only happen at whitespace
-title=\lstname,                 % show the filename of files included with \lstinputlisting; also try caption instead of title
-% morekeywords={char,double},
-escapeinside={\%*}{*)},          % if you want to add a comment within your code
-% morekeywords={*,...}          % if you want to add more keywords to the set
-% morekeywords={char,double}    % if you want to add more keywords to the set
-frameround=fttt
-}
 
 \makeatletter
 \def\BState{\State\hskip-\ALG@thistlm}
@@ -142,50 +86,12 @@ frameround=fttt
 %% \LaTeX$2_\epsilon$\ and BibTeX} at
 %% \texttt{www.acm.org/eaddress.htm}}}
 
-%\conferenceinfo{EuroMPI}{2013 Madrid, Spain}
-
 \title{
 Efficient evaluation of threshold queries of derived fields in a numerical simulation database
 }
-%
-% You need the command \numberofauthors to handle the 'placement
-% and alignment' of the authors beneath the title.
-%
-% For aesthetic reasons, we recommend 'three authors at a time'
-% i.e. three 'name/affiliation blocks' be placed beneath the title.
-%
-% NOTE: You are NOT restricted in how many 'rows' of
-% "name/affiliations" may appear. We just ask that you restrict
-% the number of 'columns' to three.
-%
-% Because of the available 'opening page real-estate'
-% we ask you to refrain from putting more than six authors
-% (two rows with three columns) beneath the article title.
-% More than six makes the first-page appear very cluttered indeed.
-%
-% Use the \alignauthor commands to handle the names
-% and affiliations for an 'aesthetic maximum' of six authors.
-% Add names, affiliations, addresses for
-% the seventh etc. author(s) as the argument for the
-% \additionalauthors command.
-% These 'additional authors' will be output/set for you
-% without further effort on your part as the last section in
-% the body of your article BEFORE References or any Appendices.
 
-\numberofauthors{3} %  in this sample file, there are a *total*
-% of EIGHT authors. SIX appear on the 'first-page' (for formatting
-% reasons) and the remaining two appear in the \additionalauthors section.
-%
+\numberofauthors{3} 
 \author{
-% You can go ahead and credit any number of authors here,
-% e.g. one 'row of three' or two rows (consisting of one row of three
-% and a second row of one, two or three).
-%
-% The command \alignauthor (no curly braces needed) should
-% precede each author name, affiliation/snail-mail address and
-% e-mail address. Additionally, tag each line of
-% affiliation/address with \affaddr, and tag the
-% e-mail address with \email.
 \alignauthor Kalin Kanov \\
      \affaddr{Department of Computer Science} \\
      \affaddr{IDIES} \\
@@ -205,18 +111,6 @@ Efficient evaluation of threshold queries of derived fields in a numerical simul
      \affaddr{Baltimore, MD 21218} \\
      \email{clalesc1@jhu.edu}
 }
-%% \and % use '\and' if you need 'another row' of author names
-%% % There's nothing stopping you putting the seventh, eighth, etc.
-%% % author on the opening page (as the 'third row') but we ask,
-%% % for aesthetic reasons that you place these 'additional authors'
-%% % in the \additional authors block, viz.
-%% \additionalauthors{Additional authors: John Smith (The Th{\o}rv{\"a}ld Group,
-%% email: {\texttt{jsmith@affiliation.org}}) and Julius P.~Kumquat
-%% (The Kumquat Consortium, email: {\texttt{jpkumquat@consortium.net}}).}
-%% \date{30 July 1999}
-%% % Just remember to make sure that the TOTAL number of authors
-%% % is the number that will appear on the first page PLUS the
-%% % number that will appear in the \additionalauthors section.
 
 \maketitle
 
@@ -231,17 +125,17 @@ The datasets produced by these simulations are in the TB and even PB ranges.
 Data-intensive computations that examine entire time-steps of the simulation data are impractical to perform
 locally by the user taking days or months to iterate over the entire dataset. 
 The integrated method for the evaluation of threshold queries that we have developed achieves scalability through data-parallel execution
-of the computations on the nodes of the database cluster. 
-We extend the scientific database cluster with the introduction of an application-aware cache for query results, building on the concept of semantic caching.
+of the computations on the nodes of an analysis database cluster. 
+We extend the scientific analysis environment with the introduction of an application-aware cache for query results, building on the concept of semantic caching.
 The cache has little overhead and improves query performance by over an order of magnitude for queries that hit the cache.
-In the case of computational turbulence this allows scientists to quickly focus on the most intense regions in any time-step or the dataset as a whole,
-which greatly speeds up the rate of scientific exploration and discovery. 
+In the case of computational turbulence this allows scientists to quickly focus on the most intense events and interesting regions in any time-step or 
+the dataset as a whole, which greatly speeds up the rate of scientific exploration and discovery. 
 Furthermore, caching the results of threshold queries preserves both the I/O and computation effort used to obtain them, which allows subsequent
 queries for some of the most interesting regions and features of the dataset to run orders of magnitude faster.
 \end{abstract}
 
 %% % A category with the (minimum) three required fields
-%\category{}{Extending Data Base Technology}
+\category{H.2.8}{Database Management}{Database Applications -- scientific, spatial databases and GIS}
 %% %A category including the fourth, optional field follows...
 %% \category{D.2.8}{Software Engineering}{Metrics}[complexity measures, performance measures]
 
@@ -253,10 +147,10 @@ queries for some of the most interesting regions and features of the dataset to 
 %What is the problem?
 Better instruments, faster and bigger supercomputers and easier collaboration and sharing of data in the sciences have introduced the need
 to manage increasingly large data sets. Data-intensive systems and architectures have been developed with the goal of storing and providing
-fast access to such data sets. Examples include the GrayWulf and Data-Scope clusters \cite{Szalay, DataScope} at Johns Hopkins, which have capacity 
-of 1.1PB and 11PB
+fast access to such data sets. Examples of such analysis environments include the GrayWulf and Data-Scope clusters \cite{Szalay, DataScope} at 
+Johns Hopkins, which have capacity of 1.1PB and 11PB
 respectively. One of their missions is to provide persistent storage and public access to world-class numerical simulation data. 
-These systems differ from the traditional HPC systems in that they aim to achieve high aggregate throughput by balancing computation
+These systems differ from the traditional HPC environments in that they aim to achieve high aggregate throughput by balancing computation
 capabilities with I/O and network bandwidth. The computing systems and services developed on top of these platforms are more than pure
 storage engines and usually have complex analysis routines built-in, which has largely been driven by the ``move the computation to the data"
 paradigm \cite{fourthparadigm}. These built-in analysis routines are most often not novel themselves. They implement core scientific functionality for the
@@ -269,12 +163,16 @@ functionality that enables new insights in the study of fluid dynamics. Analysis
 forward and backward in time has transformed our understanding of turbulence \cite{Eyink}. Furthermore, threshold, top-$k$ queries and similarity search
 in general are important in many different disciplines. We introduce an efficient evaluation strategy for threshold
 queries over time-series datasets stored in a cluster of relational databases. Our method evaluates not only threshold queries of the vector or 
-scalar field data stored in the database, but also performs thresholding of \emph{derived} fields.
+scalar field data stored in the database, but also performs thresholding of \emph{derived} fields. The main challenge that our approach tackles is that the
+data-intensive computation of \emph{derived} fields has to be carried out on-demand for extremely large array datasets stored in an analysis cluster environment 
+comprised of multiple database nodes. Here we focus on the evaluation of threshold queries over the fields derived from the data stored in the cluster as
+these queries are the most interesting scientifically. However, our approach applies to the evaluation of top-$k$ queries, rollup queries and data-reducing 
+queries in general.
 
 %Why is it hard? (E.g., why do naive approaches fail?)
 Evaluating threshold queries within the database cluster allows scientists with modest computational and network capability to narrow down on and
 examine some of the most interesting regions and features in the dataset and focus on the subsequent analysis needed to understand these events.
-The evaluation of threshold queries of derived fields requires a kernel computation at each point on the grid in order to compute the field to be thresholded.
+The evaluation of threshold queries of derived fields requires a stencil kernel computation at each point on the grid in order to compute the field to be thresholded.
 The value of the derived field at each location depends on all the values at locations within the kernel of computation. 
 In order to evaluate such a query for a given time-step, all of the data for that time-step must be read and each data point 
 will appear in $N$ kernels of computation, in which $N$ is the size of the kernel. The evaluation is both data and computation intensive.
@@ -296,23 +194,18 @@ information \cite{Lopez}. Moreover, even if the data are available in one or mor
 with the derived field still needs to be performed for each point on the grid, because results of previous computations are not cached. 
 
 %Why is it interesting and important?
-Thresholding allows scientists to obtain and examine the most intense regions and features in the dataset in the case of turbulence. 
+Thresholding allows scientists to obtain and examine the regions containing the most intense events and features in the dataset in the case of turbulence. 
 These are often the locations that have the largest vorticity norms and have intense vortices or reconnection events. 
 In magnetohydrodynamics, the locations of largest electric current are of great interest for similar reasons.
 It is important that threshold queries are evaluated in an efficient manner, because often further subsequent examination
 and analysis is required to understand the physics that drive these intense events. 
 
 %Why hasn't it been solved before? (Or, what's wrong with previous proposed solutions? How does mine differ?)
-Database systems support rollup queries, including top-$k$ queries, but in most cases these
-queries apply only simple linear score functions on the attribute values of individual records.
-Additionally, many top-$k$ query evaluation techniques rely on the score functions being monotone in order to perform early pruning (see \cite{Ilyas} for a
-survey of top-$k$ evaluation strategies).
-This is an assumption that we cannot make for the functions used to compute all the different possible derived fields of interest in fluid mechanics.
-Even approaches that aim to work with general score functions \cite{Deshpande, Xin} assume that the function operates on the attributes of a single record.
-In contrast our approach computes the value of a \emph{derived} field at each location in the array by examining the data at all neighboring locations, which
-are within the kernel of the computation. The functions used to derive the field may even be non-linear.
-Finally, a top-$k$ approach may not be suitable in the cases where scientists are interested in performing threshold queries at different time-steps as the
-same threshold level will produce different number of points in the result set for different time-steps.
+There are several challenges that arise during the evaluation of threshold queries of derived fields in an analysis database cluster. The field variables have to be
+evaluated \emph{on-demand} from the array data stored in the database cluster. The computations are data-intensive as they apply stencil kernels on extremely
+large multidimensional array datasets. Such a stencil kernel computation has to be performed at each location on the grid as opposed to at a particular number 
+of target locations. Finally, the evaluation needs to be distributed across the nodes of the database cluster to avoid the unnecessary movement of data across 
+the network and to achieve scalability.
 
 \begin{figure}
 \centering
@@ -323,7 +216,7 @@ same threshold level will produce different number of points in the result set f
 
 %What are the key components of my approach and results? Also include any specific limitations.
 We present a method for the efficient evaluation of threshold queries over fields derived from the raw vector or scalar fields of the numerical simulation 
-stored in the database. The derived fields, which our method computes and operates on are derived by performing kernel computations over the 
+stored in the database. The derived fields, which our method computes and operates on are derived by performing stencil kernel computations over the 
 stored array data.
 Our method makes effective use of the cluster resources and achieves high throughput and scalability. 
 We exploit the parallelism 
@@ -334,6 +227,14 @@ application-aware cache for query results. We build on the idea of an applicatio
 on the concept of semantic caching \cite{Dar}. Rather than caching just data as is the case in system caches and the tree-cache described by Lopez et al.,
 we cache the actual results of the computation, which leads to query performance improvement of over an order of magnitude.
 The cache that we describe is therefore a limited version of a semantic cache.
+
+The contributions of this paper are the following:
+\begin{itemize}
+\item Computing derived fields of large simulation data on-demand and evaluating threshold queries on them at extreme scale. For the first time providing large
+data analytics capabilities that examine entire time-steps of the simulation transparently to the user in a production analysis environment.
+\item Achieving this through the combination of existing data management techniques such as data parallelism and semantic caching and taking advantage of heterogeneous architectures (sharded database cluster with several SSDs per node).
+\item Evaluating the proposed method on data-intensive workloads in a live production environment and showing scalability results on datasets hundreds of terabytes in size.
+\end{itemize}
 
 %-The evaluation is computationally limited and embarrassingly parallel, which makes it a good candidate for a GPU implementation.
 
@@ -346,8 +247,9 @@ all of the functionality that scientists are interested in out of the box. It is
 capabilities have to be built-in through user-defined functions or stored procedures. 
 
 The method that we have developed for the evaluation of threshold queries of derived fields was deployed and integrated into the 
-Johns Hopkins Turbulence Databases (JHTDB) \cite{Yi, Perlman}. The JHTDB, built on top of the GrayWulf and Data-Scope clusters, serves as a public
-virtual laboratory for
+Johns Hopkins Turbulence Databases (JHTDB) \cite{Yi, Perlman}. It solves a pressing problem in a production scientific analysis environment, which differs 
+from the traditional supercomputing environments and provides large data analytics capabilities transparently to the public. 
+The JHTDB, built on top of the GrayWulf and Data-Scope clusters, serves as a public virtual laboratory for
 the study of turbulent phenomena. The JHTDB stores several datasets, which are the output of high-resolution numerical simulations of turbulence.
 The 3d time-series data are partitioned into small sub-cubes and stored in relational databases distributed across the nodes of the cluster.
 Access to the data is provided by means of Web-services and a variety of analysis functions have been
@@ -380,7 +282,7 @@ Each request is broken down into multiple parts based on the spatial layout of t
 to the database which stores the data needed for the evaluation.
 The Web-server assembles the results from the distributed computation and sends them back to the client.
 
-The JHTDB provide a variety of data-intensive analysis routines that are executed on the database nodes. These include interpolation, 
+The JHTDB provides a variety of data-intensive analysis routines that are executed on the database nodes. These include interpolation, 
 differentiation, particle tracking and spatial filtering. These tasks are often data-intensive and in order to leverage the capabilities of the cluster we
 have developed data-driven batch processing techniques for their evaluation \cite{KanovSC11, KanovSC12}. Most of these tasks usually operate on subsets
 of the space or a collection of individual target locations within a time-step. In contrast, threshold and top-$k$ queries usually have to examine the entire 
@@ -464,8 +366,7 @@ Such a band is needed on each of the sides of the box forming the domain of the 
 The data are read into memory and the particular field requested is computed at each of the locations on
 the grid. The same strategy applies when utilizing multiple processes per node. The norm or absolute value of the derived field at each location is compared 
 against the specified threshold and if the value is higher it is maintained along with
-the spatial coordinates of the location in a list. We limit the maximum size of this list to around 1,000,000 locations in order to prevent having to return
-the entire time-step or a significant fraction of it for queries with thresholds that are set too low. 
+the spatial coordinates of the location in a list.
 
 {\bf Application-aware cache for query results:} A central part of the evaluation strategy for threshold queries that we have developed is the 
 introduction of an application-aware cache
@@ -490,29 +391,6 @@ Thus, we do not have to derive the requested field from the raw data for
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
 
-Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
-locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
-reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries. Nevertheless, it can 
-easily be extended to cache the results of other query types as well if that becomes advantageous.
-
-%\kk{Cite results for top-$k$ queries in databases and distributed systems. Remark that non of these strategies operate on large array datasets 
-%and they do not operate on derived fields, where each value of the derived field depends on multiple values from the original field and requires a kernel
-%computation accessing multiple data points in a kernel around the target location.}
-
-The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
-Given a limit of $\sim$1,000,000 points per time-step for a threshold query, the space required to cache the maximum number of points including the index
-space and database overhead is $\sim$40MB. 
-Therefore for a dataset containing 
-1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
-results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
-require $\sim$5TB (15TB for vector fields).
-
-The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
-dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
-of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
-the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
-lookup.
-
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
 \begin{algorithmic}[1]
@@ -530,7 +408,7 @@ lookup.
 \State $start \gets reader[``startIndex"]$
 \State $end \gets reader[``endIndex"]$
 \State $ordinal \gets reader[``ordinal"]$
-\If {$k \le k_s \And q \in \text{[start, end]}$}
+\If {$k \ge k_s \And q \in \text{[start, end]}$}
 \State $\textit{query} \gets \text{SELECT * FROM cachedb..cacheData}$
 \Statex[4] $\text{WHERE cacheInfoOrdinal = {\it ordinal}}$
 \State $command \gets SqlCommand(query)$
@@ -562,6 +440,32 @@ lookup.
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
+
+Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
+locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
+reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries. Nevertheless, it can 
+easily be extended to cache the results of other query types as well if that becomes advantageous.
+
+We impose a limit on the maximum number of locations that can be returned as a result of a threshold query in order to prevent having to return
+the entire time-step or a significant fraction of it for queries with thresholds that are set too low. Currently this limit is around 1,000,000 locations, which is
+sufficient to examine a time-step in detail while limiting the amount of data that have to be returned to the user over the network as well as the amount of
+data that have to be cached. Users receive an error message notifying them if their request has a threshold that is set too low. If a user
+is interested in obtaining more data he or she can request the values of the derived field directly. Alternatively, if they are interested in the density distribution
+of values they can examine the probability density function (e.g. Fig. \ref{fig:pdf}), which is computed using a similar strategy to threshold queries.
+
+The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
+Given a limit of $\sim$1,000,000 points per time-step for a threshold query, the space required to cache the maximum number of points including the index
+space and database overhead is $\sim$40MB. 
+Therefore for a dataset containing 
+1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
+results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
+require $\sim$5TB (15TB for vector fields).
+
+The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
+dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
+of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
+the ordinal of the {\it cacheInfo} table. This allows us to quickly find a record in the {\it cacheInfo} table and retrieve all of the cached entries using an index
+lookup.
 
 {\bf Overall execution of threshold queries:} Algorithm \ref{alg:cache_lookup} illustrates the process of obtaining all points with norms of the specified field
 above the given threshold from the database in the presence of a cache. 
@@ -607,10 +511,7 @@ For this evaluation we looked at the performance of threshold queries to the vor
 have to be computed from the stored data. It is defined as the curl of the velocity field.
 As described in section \ref{science_use_cases}
 thresholding the vorticity field is important in the study of fluid dynamics and obtaining the locations of maximum vorticity can lead to new insights into
-the development of the most intense vortices that are observed. 
-%\kk{Consider showing other fields as well; possibly thresholding the velocity by itself}
-
-\subsection{Evaluation of cache effectiveness}
+the development of the most intense vortices observed in the dataset. 
 
 \begin{figure*}
 \centering
@@ -621,6 +522,8 @@ utilizing 1-8 processes per server on a 4-node cluster. The scale-out evaluation
 \label{fig:scaling}
 \end{figure*}
 
+\subsection{Evaluation of cache effectiveness}
+
 The central part of the strategy that we have developed for the evaluation of threshold queries of derived fields is the application-aware cache, which
 stores the results of these queries. We first evaluate the overhead associated with the introduction and maintenance of the cache. Figure
 \ref{fig:cache_overhead} compares the execution time of queries in the absence of a cache with the execution time of the same queries, which interrogate
@@ -630,7 +533,7 @@ the locations with norms of the vorticity above thresholds at different levels. 
 the norm of the vorticity field in the MHD dataset to get an appreciation of the different threshold values used in the experiments. 
 For the first set the threshold was set high (80.0) and only $\sim$4,300 points 
 (or 0.0004\% of all points) were above the threshold. For the second set a medium threshold (60.0) was chosen and $\sim$87,000 points 
-(or 0.0081\% of all points) were above the threshold. Finally, a low threshold (44.0) was chosen for the last set with $\sim$900,000 points 
+(or 0.0081\% of all points) were above the threshold. Finally, a low threshold (44.0) was chosen for the last set and there were $\sim$900,000 points 
 (or 0.0847\% of all points) above the threshold. For each set a random
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
 
@@ -660,14 +563,14 @@ The running time increases slightly only because of the larger result set that h
 %misses. The slight increase in the running time that can be observed is due to the larger result set that has to be returned to the user.
 
 Cache hits reduce the running time of threshold queries by over an order of magnitude as shown in Figure \ref{fig:cache_overhead} and
-Table \ref{tab:cache_effectiveness}. This is because we do not have to compute the derived
-field requested from the raw data, which also eliminates the associated I/O. Only the cache entries need to be looked-up, which is substantially less data
+Table \ref{tab:cache_effectiveness}. This is because we do not have to compute the requested derived
+field from the raw data, which eliminates the associated I/O. Only the cache entries need to be looked-up, which is substantially less data
 than the raw vector or scalar field data. For the queries with large result sets it is actually the network time taken to transfer the results to the user that 
 dominates the overall execution as opposed to the I/O or computation time as we show later.
 Cache hits are evaluated by first warming up the cache by submitting the same set of threshold queries of the vorticity field as before. We then submit
 several more unrelated queries with different time-steps and threshold values in order to pollute the cache. Finally, we issue the original set of queries and 
 measure their running times. Let us focus on the query
-with low threshold, which returns $\sim$900,000 points. Given that the number of points that can be returned from a threshold query is limited to 1,000,000
+with low threshold, which returns $\sim$900,000 points. Given that valid threshold values are limited to those that result in no more than 1,000,000 points
 it is likely that all subsequent queries to this time-step will result in a cache hit as their threshold is likely to be equal or higher than the cached one.
 
 \subsection{Scaling and Distributed Evaluation}
@@ -680,7 +583,7 @@ but with varying number of processes per node. Cache entries for the
 time-step queried were again dropped before each run in order to evaluate the scaling properties of the computation of the derived field from the stored data.
 The computations for all of 
 the derived fields of interest (such as the vorticity) at each gird point need data from adjacent grid points only. Therefore, each node of the cluster is able to
-compute the derived field from data available locally with only a little amount along the boundary of each region having to be retrieved from adjacent nodes.
+compute the derived field from data available locally with only a small amount along the boundary of each region having to be retrieved from adjacent nodes.
 Each computation is independent and embarrassingly parallel. This allows us to make use of multiple processes per node and scale out to
 multiple database nodes.
 
@@ -689,8 +592,8 @@ The speedup diminishes to 1.4 times when going to 4 processes and little speedup
 observed with 8 processes per node. This is due to several factors. Each node has 2 CPUs and a total of 8 cores, which need to run operating system and other SQL Server
 processes as well. The experiments were run on the live production database nodes, which were also servicing other user queries. Additionally, SQL
 Server already utilizes parallelism to perform most of the I/O. Finally, due to the data-parallel approach to the evaluation of these queries the data atoms along
-the boundary of each region will be requested by multiple processes. Nevertheless, running with 4 processes per node is nearly 2.6 times faster when
-compared to running a single process.
+the boundary of each region are requested by multiple processes. Nevertheless, running with 4 processes per node is nearly 2.6 times faster when
+compared to running with a single process.
 
 The scale-out experiments show a nearly perfect linear speedup as the evaluation is distributed to an increasing number of database nodes 
 (Fig. \ref{fig:scaleout}). For these experiments we issued queries with the same threshold levels as before to a cold cache. We utilized a single process per
@@ -750,7 +653,7 @@ derived fields, which are evaluated from the raw data and a cold cache using 4 p
 performing the I/O and computation associated with the derived field requested. 
 
 The vorticity field and the Q-criterion have similar I/O requirements as they
-have the same kernels of computation and both can be derived from the velocity gradient. The vorticity has 3 components and its computation only examines
+have the same kernels of computation and are both derived from the velocity gradient. The vorticity has 3 components and its computation only examines
 6 of the 9 components of the velocity gradient, which are also examined in pairs (see Eq. \ref{eq:curl}). On the other hand, even though the Q-criterion is a
 scalar value, it is computed through a non-linear combination of all 9 of the components of the velocity gradient. This means that the velocity gradient has
 to be computed at each grid location before the Q-criterion is evaluated, which is reflected in the increased computation time that we observer for the
@@ -787,19 +690,26 @@ dimensions with AQL and make use of the functional operators defined in AFL, suc
 as SLICE, SUBSAMPLE, SJOIN, FILTER and APPLY. SciQL's focus is on language design and the integration with SQL:2003 syntax and semantics. It is implemented
 within the MonetDB framework \cite{MonetDB}.
 
+Database systems support rollup queries, including top-$k$ queries, but in most cases these
+queries apply only simple linear score functions on the attribute values of individual records.
+Additionally, many top-$k$ query evaluation techniques rely on the score functions being monotone in order to perform early pruning (see \cite{Ilyas} for a
+survey of top-$k$ evaluation strategies).
+This is an assumption that we cannot make for the functions used to compute all the different possible derived fields of interest in fluid mechanics.
+Even approaches that aim to work with general score functions \cite{Deshpande, Xin} assume that the function operates on the attributes of a single record.
+In contrast our approach performs a stencil kernel computation at each grid location in order to obtain the value of a \emph{derived} field at that location and
+examines the vector or scalar array data at all neighboring locations, which
+are within the kernel of the computation. The functions used to derive the field may even be non-linear.
+Finally, a top-$k$ approach may not be suitable in the cases where scientists are interested in performing threshold queries at different time-steps as the
+same threshold level will produce different number of points in the result set for different time-steps.
+
 The processing of top-$k$ queries has been studied extensively in the context of distributed and relational database systems. A survey of different techniques
 in the case of centralized processing is given in \cite{Ilyas}. In the case of distributed processing different approaches focus on horizontally 
 \cite{Balke, Vlachou} or vertically \cite{Cao, Chaudhuri, Guntzer, Marian, Michel} distributed data. None of these approaches deals with array data stored in
-a realtional database system. Moreover, these approaches focus on top-$k$ queries that use simple linear score functions to aggregate the attribute values of
-individual records. In addition to top-$k$ queries, we are also interested in threshold queries, where the result set includes all locations and values that are
-above a user-prescribed threshold. The threshold queries that we focus on operate over fields derived from the scalar or vector field simulation data through
-the evaluation of kernel computations at each data point.
-
-Zhao et al. propose an algorithm for the processing of top-$k$ queries in large-scale distributed environments called BRANCA \cite{Zhao}. They build on the 
-idea of semantic caching \cite{Ren} and make use of branch caches, which store results of previous top-$k$ queries with respect to the data stored on each server.
-The caching mechanism that we use is similar in that regard, but the queries that are evaluated in our system operate on derived fields, which are computed
-at each location by accessing data from a surrounding region. The queries described in \cite{Zhao} operate over the attributes of individual records only using
-simple linear score functions.
+a relational database system. Zhao et al. propose an algorithm for the processing of top-$k$ queries in large-scale distributed environments called BRANCA
+\cite{Zhao}. They build on the idea of semantic caching \cite{Ren} and make use of branch caches, which store results of previous top-$k$ queries with respect 
+to the data stored on each server. The caching mechanism that we use is similar in that regard, but the queries that are evaluated in our system operate on
+derived fields, which are computed at each location by accessing data from a surrounding region. The queries described in \cite{Zhao} operate over the 
+attributes of individual records only using simple linear score functions.
 
 A{\ss}falg et al. introduce the concept of threshold queries in time-series databases \cite{Asfalg}. Their definition of threshold queries differs from the threshold
 queries described in this paper. They are concerned with determining the time-series, which exceed a user-defined threshold at time frames similar to
@@ -810,8 +720,17 @@ reporting all of the spatial locations of a multidimensional field where the nor
 In a system called the tree cache Lopez et al. \cite{Lopez} make use of a small application-aware cache to reduce access time to large datasets stored on
 disk. The tree cache stores individual octants of octree datasets and exploits application-specific information to determine which octants to cache and to 
 perform query reordering. This work has inspired the use of an application-aware cache for the evaluation of threshold queries. In contrast to the tree cache,
-we do not cache raw data objects, but rather query results. This substantially reduces the size of the cache and improves query performance. Additionally, 
-the cache that we introduce resides on disk rather than in memory, which greatly increases its potential size.
+we do not cache raw data objects, but rather query results. Caching query results preserves the computational effort in addition to reducing I/O, which has a
+much bigger impact on query performance and substantially reduces the size of the cache.. Additionally, the cache that we introduce resides on disk rather 
+than in memory, which greatly increases its potential size. Lopez et al. also explore approximate querying through aggregation, which can be fairly easily
+supported by our system but is of limited use as scientists performing threshold queries are usually interested in obtaining the exact locations where a field is 
+at its highest values.
+
+Sampling approaches \cite{Sidirourgos, Nirkhiwale} offer an alternative to the computation of derived fields on demand and the evaluation of threshold queries
+on them. The goal of both techniques is to not return large data volumes, but focus on the most intense events and interesting regions in the dataset. 
+The computation of the derived fields is carried out on the nodes of the database cluster and takes a look at the dataset as a whole, while the user obtains only
+a small subset of the data, where the derived field in question is above the prescribed threshold. Sampling approaches can potentially omit some locations and
+while useful for generating initial impressions may not be suitable if the exact locations where a field is at its highest values are desired.
 
 Andrade et al. \cite{Andrade} describe a database system and an optimization framework build on the concept of \emph{active semantic caching}. An
 active semantic cache aims to fully or partially reuse cached query results or aggregates through automated transformations of these aggregates. Similarly
@@ -856,383 +775,7 @@ This will allow for much greater flexibility in the type of computations that ca
 %their insightful comments and suggestions. This work is supported in part by the National Science Foundation
 %under Grants ....
 
-
-%% \section{The {\secit Body} of The Paper}
-%% Typically, the body of a paper is organized
-%% into a hierarchical structure, with numbered or unnumbered
-%% headings for sections, subsections, sub-subsections, and even
-%% smaller sections.  The command \texttt{{\char'134}section} that
-%% precedes this paragraph is part of such a
-%% hierarchy.\footnote{This is the second footnote.  It
-%% starts a series of three footnotes that add nothing
-%% informational, but just give an idea of how footnotes work
-%% and look. It is a wordy one, just so you see
-%% how a longish one plays out.} \LaTeX\ handles the numbering
-%% and placement of these headings for you, when you use
-%% the appropriate heading commands around the titles
-%% of the headings.  If you want a sub-subsection or
-%% smaller part to be unnumbered in your output, simply append an
-%% asterisk to the command name.  Examples of both
-%% numbered and unnumbered headings will appear throughout the
-%% balance of this sample document.
-
-%% Because the entire article is contained in
-%% the \textbf{document} environment, you can indicate the
-%% start of a new paragraph with a blank line in your
-%% input file; that is why this sentence forms a separate paragraph.
-
-%% \subsection{Type Changes and {\subsecit Special} Characters}
-%% We have already seen several typeface changes in this sample.  You
-%% can indicate italicized words or phrases in your text with
-%% the command \texttt{{\char'134}textit}; emboldening with the
-%% command \texttt{{\char'134}textbf}
-%% and typewriter-style (for instance, for computer code) with
-%% \texttt{{\char'134}texttt}.  But remember, you do not
-%% have to indicate typestyle changes when such changes are
-%% part of the \textit{structural} elements of your
-%% article; for instance, the heading of this subsection will
-%% be in a sans serif\footnote{A third footnote, here.
-%% Let's make this a rather short one to
-%% see how it looks.} typeface, but that is handled by the
-%% document class file. Take care with the use
-%% of\footnote{A fourth, and last, footnote.}
-%% the curly braces in typeface changes; they mark
-%% the beginning and end of
-%% the text that is to be in the different typeface.
-
-%% You can use whatever symbols, accented characters, or
-%% non-English characters you need anywhere in your document;
-%% you can find a complete list of what is
-%% available in the \textit{\LaTeX\
-%% User's Guide}\cite{Lamport:LaTeX}.
-
-%% \subsection{Math Equations}
-%% You may want to display math equations in three distinct styles:
-%% inline, numbered or non-numbered display.  Each of
-%% the three are discussed in the next sections.
-
-%% \subsubsection{Inline (In-text) Equations}
-%% A formula that appears in the running text is called an
-%% inline or in-text formula.  It is produced by the
-%% \textbf{math} environment, which can be
-%% invoked with the usual \texttt{{\char'134}begin. . .{\char'134}end}
-%% construction or with the short form \texttt{\$. . .\$}. You
-%% can use any of the symbols and structures,
-%% from $\alpha$ to $\omega$, available in
-%% \LaTeX\cite{Lamport:LaTeX}; this section will simply show a
-%% few examples of in-text equations in context. Notice how
-%% this equation: \begin{math}\lim_{n\rightarrow \infty}x=0\end{math},
-%% set here in in-line math style, looks slightly different when
-%% set in display style.  (See next section).
-
-%% \subsubsection{Display Equations}
-%% A numbered display equation -- one set off by vertical space
-%% from the text and centered horizontally -- is produced
-%% by the \textbf{equation} environment. An unnumbered display
-%% equation is produced by the \textbf{displaymath} environment.
-
-%% Again, in either environment, you can use any of the symbols
-%% and structures available in \LaTeX; this section will just
-%% give a couple of examples of display equations in context.
-%% First, consider the equation, shown as an inline equation above:
-%% \begin{equation}\lim_{n\rightarrow \infty}x=0\end{equation}
-%% Notice how it is formatted somewhat differently in
-%% the \textbf{displaymath}
-%% environment.  Now, we'll enter an unnumbered equation:
-%% \begin{displaymath}\sum_{i=0}^{\infty} x + 1\end{displaymath}
-%% and follow it with another numbered equation:
-%% \begin{equation}\sum_{i=0}^{\infty}x_i=\int_{0}^{\pi+2} f\end{equation}
-%% just to demonstrate \LaTeX's able handling of numbering.
-
-%% \subsection{Citations}
-%% Citations to articles \cite{bowman:reasoning, clark:pct, braams:babel, herlihy:methodology},
-%% conference
-%% proceedings \cite{clark:pct} or books \cite{salas:calculus, Lamport:LaTeX} listed
-%% in the Bibliography section of your
-%% article will occur throughout the text of your article.
-%% You should use BibTeX to automatically produce this bibliography;
-%% you simply need to insert one of several citation commands with
-%% a key of the item cited in the proper location in
-%% the \texttt{.tex} file \cite{Lamport:LaTeX}.
-%% The key is a short reference you invent to uniquely
-%% identify each work; in this sample document, the key is
-%% the first author's surname and a
-%% word from the title.  This identifying key is included
-%% with each item in the \texttt{.bib} file for your article.
-
-%% The details of the construction of the \texttt{.bib} file
-%% are beyond the scope of this sample document, but more
-%% information can be found in the \textit{Author's Guide},
-%% and exhaustive details in the \textit{\LaTeX\ User's
-%% Guide}\cite{Lamport:LaTeX}.
-
-%% This article shows only the plainest form
-%% of the citation command, using \texttt{{\char'134}cite}.
-%% This is what is stipulated in the SIGS style specifications.
-%% No other citation format is endorsed.
-
-%% \subsection{Tables}
-%% Because tables cannot be split across pages, the best
-%% placement for them is typically the top of the page
-%% nearest their initial cite.  To
-%% ensure this proper ``floating'' placement of tables, use the
-%% environment \textbf{table} to enclose the table's contents and
-%% the table caption.  The contents of the table itself must go
-%% in the \textbf{tabular} environment, to
-%% be aligned properly in rows and columns, with the desired
-%% horizontal and vertical rules.  Again, detailed instructions
-%% on \textbf{tabular} material
-%% is found in the \textit{\LaTeX\ User's Guide}.
-
-%% Immediately following this sentence is the point at which
-%% Table 1 is included in the input file; compare the
-%% placement of the table here with the table in the printed
-%% dvi output of this document.
-
-%% \begin{table}
-%% \centering
-%% \caption{Frequency of Special Characters}
-%% \begin{tabular}{|c|c|l|} \hline
-%% Non-English or Math&Frequency&Comments\\ \hline
-%% \O & 1 in 1,000& For Swedish names\\ \hline
-%% $\pi$ & 1 in 5& Common in math\\ \hline
-%% \$ & 4 in 5 & Used in business\\ \hline
-%% $\Psi^2_1$ & 1 in 40,000& Unexplained usage\\
-%% \hline\end{tabular}
-%% \end{table}
-
-%% To set a wider table, which takes up the whole width of
-%% the page's live area, use the environment
-%% \textbf{table*} to enclose the table's contents and
-%% the table caption.  As with a single-column table, this wide
-%% table will ``float" to a location deemed more desirable.
-%% Immediately following this sentence is the point at which
-%% Table 2 is included in the input file; again, it is
-%% instructive to compare the placement of the
-%% table here with the table in the printed dvi
-%% output of this document.
-
-%% \begin{table*}
-%% \centering
-%% \caption{Some Typical Commands}
-%% \begin{tabular}{|c|c|l|} \hline
-%% Command&A Number&Comments\\ \hline
-%% \texttt{{\char'134}alignauthor} & 100& Author alignment\\ \hline
-%% \texttt{{\char'134}numberofauthors}& 200& Author enumeration\\ \hline
-%% \texttt{{\char'134}table}& 300 & For tables\\ \hline
-%% \texttt{{\char'134}table*}& 400& For wider tables\\ \hline\end{tabular}
-%% \end{table*}
-%% % end the environment with {table*}, NOTE not {table}!
-
-%% \subsection{Figures}
-%% Like tables, figures cannot be split across pages; the
-%% best placement for them
-%% is typically the top or the bottom of the page nearest
-%% their initial cite.  To ensure this proper ``floating'' placement
-%% of figures, use the environment
-%% \textbf{figure} to enclose the figure and its caption.
-
-%% This sample document contains examples of \textbf{.eps}
-%% and \textbf{.ps} files to be displayable with \LaTeX.  More
-%% details on each of these is found in the \textit{Author's Guide}.
-
-%% \begin{figure}
-%% \centering
-%% \epsfig{file=fly.eps}
-%% \caption{A sample black and white graphic (.eps format).}
-%% \end{figure}
-
-%% \begin{figure}
-%% \centering
-%% \epsfig{file=fly.eps, height=1in, width=1in}
-%% \caption{A sample black and white graphic (.eps format)
-%% that has been resized with the \texttt{epsfig} command.}
-%% \end{figure}
-
-%% As was the case with tables, you may want a figure
-%% that spans two columns.  To do this, and still to
-%% ensure proper ``floating'' placement of tables, use the environment
-%% \textbf{figure*} to enclose the figure and its caption.
-
-%% Note that either {\textbf{.ps}} or {\textbf{.eps}} formats are
-%% used; use
-%% the \texttt{{\char'134}epsfig} or \texttt{{\char'134}psfig}
-%% commands as appropriate for the different file types.
-
-%% \subsection{Theorem-like Constructs}
-%% Other common constructs that may occur in your article are
-%% the forms for logical constructs like theorems, axioms,
-%% corollaries and proofs.  There are
-%% two forms, one produced by the
-%% command \texttt{{\char'134}newtheorem} and the
-%% other by the command \texttt{{\char'134}newdef}; perhaps
-%% the clearest and easiest way to distinguish them is
-%% to compare the two in the output of this sample document:
-
-%% This uses the \textbf{theorem} environment, created by
-%% the\linebreak\texttt{{\char'134}newtheorem} command:
-%% \newtheorem{theorem}{Theorem}
-%% \begin{theorem}
-%% Let $f$ be continuous on $[a,b]$.  If $G$ is
-%% an antiderivative for $f$ on $[a,b]$, then
-%% \begin{displaymath}\int^b_af(t)dt = G(b) - G(a).\end{displaymath}
-%% \end{theorem}
-
-%% The other uses the \textbf{definition} environment, created
-%% by the \texttt{{\char'134}newdef} command:
-%% \newdef{definition}{Definition}
-%% \begin{definition}
-%% If $z$ is irrational, then by $e^z$ we mean the
-%% unique number which has
-%% logarithm $z$: \begin{displaymath}{\log e^z = z}\end{displaymath}
-%% \end{definition}
-
-%% \begin{figure}
-%% \centering
-%% \psfig{file=rosette.ps, height=1in, width=1in,}
-%% \caption{A sample black and white graphic (.ps format) that has
-%% been resized with the \texttt{psfig} command.}
-%% \end{figure}
-
-%% Two lists of constructs that use one of these
-%% forms is given in the
-%% \textit{Author's  Guidelines}.
-
-%% \begin{figure*}
-%% \centering
-%% \epsfig{file=flies.eps}
-%% \caption{A sample black and white graphic (.eps format)
-%% that needs to span two columns of text.}
-%% \end{figure*}
-%% and don't forget to end the environment with
-%% {figure*}, not {figure}!
- 
-%% There is one other similar construct environment, which is
-%% already set up
-%% for you; i.e. you must \textit{not} use
-%% a \texttt{{\char'134}newdef} command to
-%% create it: the \textbf{proof} environment.  Here
-%% is a example of its use:
-%% \begin{proof}
-%% Suppose on the contrary there exists a real number $L$ such that
-%% \begin{displaymath}
-%% \lim_{x\rightarrow\infty} \frac{f(x)}{g(x)} = L.
-%% \end{displaymath}
-%% Then
-%% \begin{displaymath}
-%% l=\lim_{x\rightarrow c} f(x)
-%% = \lim_{x\rightarrow c}
-%% \left[ g{x} \cdot \frac{f(x)}{g(x)} \right ]
-%% = \lim_{x\rightarrow c} g(x) \cdot \lim_{x\rightarrow c}
-%% \frac{f(x)}{g(x)} = 0\cdot L = 0,
-%% \end{displaymath}
-%% which contradicts our assumption that $l\neq 0$.
-%% \end{proof}
-
-%% Complete rules about using these environments and using the
-%% two different creation commands are in the
-%% \textit{Author's Guide}; please consult it for more
-%% detailed instructions.  If you need to use another construct,
-%% not listed therein, which you want to have the same
-%% formatting as the Theorem
-%% or the Definition\cite{salas:calculus} shown above,
-%% use the \texttt{{\char'134}newtheorem} or the
-%% \texttt{{\char'134}newdef} command,
-%% respectively, to create it.
-
-%% \subsection*{A {\secit Caveat} for the \TeX\ Expert}
-%% Because you have just been given permission to
-%% use the \texttt{{\char'134}newdef} command to create a
-%% new form, you might think you can
-%% use \TeX's \texttt{{\char'134}def} to create a
-%% new command: \textit{Please refrain from doing this!}
-%% Remember that your \LaTeX\ source code is primarily intended
-%% to create camera-ready copy, but may be converted
-%% to other forms -- e.g. HTML. If you inadvertently omit
-%% some or all of the \texttt{{\char'134}def}s recompilation will
-%% be, to say the least, problematic.
-
-%% \section{Conclusions}
-%% This paragraph will end the body of this sample document.
-%% Remember that you might still have Acknowledgments or
-%% Appendices; brief samples of these
-%% follow.  There is still the Bibliography to deal with; and
-%% we will make a disclaimer about that here: with the exception
-%% of the reference to the \LaTeX\ book, the citations in
-%% this paper are to articles which have nothing to
-%% do with the present subject and are used as
-%% examples only.
-%% %\end{document}  % This is where a 'short' article might terminate
-
-%% %ACKNOWLEDGMENTS are optional
-%% \section{Acknowledgments}
-%% This section is optional; it is a location for you
-%% to acknowledge grants, funding, editing assistance and
-%% what have you.  In the present case, for example, the
-%% authors would like to thank Gerald Murray of ACM for
-%% his help in codifying this \textit{Author's Guide}
-%% and the \textbf{.cls} and \textbf{.tex} files that it describes.
-
-%
-% The following two commands are all you need in the
-% initial runs of your .tex file to
-% produce the bibliography for the citations in your paper.
 \bibliographystyle{abbrv}
-\bibliography{paper}  % sigproc.bib is the name of the Bibliography in this case
-% You must have a proper ".bib" file
-%  and remember to run:
-% latex bibtex latex latex
-% to resolve all references
-%
-% ACM needs 'a single self-contained file'!
-%
-%APPENDICES are optional
-%\balancecolumns
-%% \appendix
-%% %Appendix A
-%% \section{Headings in Appendices}
-%% The rules about hierarchical headings discussed above for
-%% the body of the article are different in the appendices.
-%% In the \textbf{appendix} environment, the command
-%% \textbf{section} is used to
-%% indicate the start of each Appendix, with alphabetic order
-%% designation (i.e. the first is A, the second B, etc.) and
-%% a title (if you include one).  So, if you need
-%% hierarchical structure
-%% \textit{within} an Appendix, start with \textbf{subsection} as the
-%% highest level. Here is an outline of the body of this
-%% document in Appendix-appropriate form:
-%% \subsection{Introduction}
-%% \subsection{The Body of the Paper}
-%% \subsubsection{Type Changes and  Special Characters}
-%% \subsubsection{Math Equations}
-%% \paragraph{Inline (In-text) Equations}
-%% \paragraph{Display Equations}
-%% \subsubsection{Citations}
-%% \subsubsection{Tables}
-%% \subsubsection{Figures}
-%% \subsubsection{Theorem-like Constructs}
-%% \subsubsection*{A Caveat for the \TeX\ Expert}
-%% \subsection{Conclusions}
-%% \subsection{Acknowledgments}
-%% \subsection{Additional Authors}
-%% This section is inserted by \LaTeX; you do not insert it.
-%% You just add the names and information in the
-%% \texttt{{\char'134}additionalauthors} command at the start
-%% of the document.
-%% \subsection{References}
-%% Generated by bibtex from your ~.bib file.  Run latex,
-%% then bibtex, then latex twice (to resolve references)
-%% to create the ~.bbl file.  Insert that ~.bbl file into
-%% the .tex source file and comment out
-%% the command \texttt{{\char'134}thebibliography}.
-%% % This next section command marks the start of
-%% % Appendix B, and does not continue the present hierarchy
-%% \section{More Help for the Hardy}
-%% The acm\_proc\_article-sp document class file itself is chock-full of succinct
-%% and helpful comments.  If you consider yourself a moderately
-%% experienced to expert user of \LaTeX, you may find reading
-%% it useful but please remember not to change it.
-%% \balancecolumns
-%% % That's all folks!
+\bibliography{paper} 
+
 \end{document}

@@ -382,13 +382,15 @@ the grid. The same strategy applies when utilizing multiple processes per node. 
 against the specified threshold and if the value is higher it is maintained along with
 the spatial coordinates of the location in a list.
 
-{\bf Application-aware cache for query results:} A central part of the evaluation strategy for threshold queries that we have developed is the 
-introduction of an application-aware cache
-for query results (Fig. \ref{fig:cache_diagram}). The results of these queries are small compared to the amount of data that need to be examined and the
-results can be used to answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node 
-has a local cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
-used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
-avoid dirty-reads or an inconsistent view of the cache. 
+We impose a limit on the maximum number of locations that can be returned as a result of a threshold query in order to prevent having to return
+the entire time-step or a significant fraction of it for queries with thresholds that are set too low. Currently this limit is around $10^6$ locations, which is
+sufficient to examine a time-step in detail. In the case of the vorticity these locations contain all values above $\sim$8 times the root mean square value of
+the vorticity, which is about $25\%$ of the maximum. Given that we are interested in extreme events, obtaining the locations with values even within $50\%$ 
+of the maximum would be sufficient. 
+At the same time this also limits the amount of data that have to be returned to the user over the network as well as the amount of
+data that have to be cached. Users receive an error message notifying them if their request has a threshold that is set too low. If a user
+is interested in obtaining more data he or she can request the values of the derived field directly. Alternatively, if they are interested in the density distribution
+of values they can examine the probability density function (e.g. Fig. \ref{fig:pdf}), which is computed using a similar strategy to threshold queries.
 
 \begin{figure}
 \centering
@@ -398,17 +400,20 @@ Each database node has local cache tables, which reside on solid-state drives at
 \label{fig:cache_diagram}
 \end{figure}
 
+{\bf Application-aware cache for query results:} A central part of the evaluation strategy for threshold queries that we have developed is the 
+introduction of an application-aware cache
+for query results (Fig. \ref{fig:cache_diagram}). The results of these queries are small compared to the amount of data that need to be examined and the
+results can be used to answer subsequent queries as long as they are within the same region and specify the same or higher threshold. Each database node 
+has a local cache. Cache entries are indexed by the field, time-step, spatial region and the threshold requested. We use a least recently
+used cache replacement policy. All modifications of and queries to the cache are executed within a transaction with snapshot isolation level to
+avoid dirty-reads or an inconsistent view of the cache. 
+
 Caching the query results
 preserves the computational effort in addition to substantially reducing I/O. The cached data are for the particular derived field that was queried
 and not the raw data of the simulation fields.
 Thus, we do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
-
-Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
-locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
-reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries. Nevertheless, it can 
-easily be extended to cache the results of other query types as well if that becomes advantageous.
 
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
@@ -460,15 +465,10 @@ easily be extended to cache the results of other query types as well if that bec
 \end{algorithmic}
 \end{algorithm}
 
-We impose a limit on the maximum number of locations that can be returned as a result of a threshold query in order to prevent having to return
-the entire time-step or a significant fraction of it for queries with thresholds that are set too low. Currently this limit is around $10^6$ locations, which is
-sufficient to examine a time-step in detail. In the case of the vorticity these locations contain all values within $\sim$8 times the root mean squared value of
-the vorticity, which is about $25\%$ of the maximum. Given that we are interested in extreme events, obtaining the locations with values even within $50\%$ 
-of the maximum would be sufficient. 
-At the same time this also limits the amount of data that have to be returned to the user over the network as well as the amount of
-data that have to be cached. Users receive an error message notifying them if their request has a threshold that is set too low. If a user
-is interested in obtaining more data he or she can request the values of the derived field directly. Alternatively, if they are interested in the density distribution
-of values they can examine the probability density function (e.g. Fig. \ref{fig:pdf}), which is computed using a similar strategy to threshold queries.
+Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
+locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
+reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries. Nevertheless, it can 
+easily be extended to cache the results of other query types as well if that becomes advantageous.
 
 The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
 Given a limit of $\sim$$10^6$ points per time-step for a threshold query, the space required to cache the maximum number of points including the index
@@ -738,7 +738,7 @@ In a system called the tree cache Lopez et al. \cite{Lopez} make use of a small 
 disk. The tree cache stores individual octants of octree datasets and exploits application-specific information to determine which octants to cache and to 
 perform query reordering. This work has inspired the use of an application-aware cache for the evaluation of threshold queries. In contrast to the tree cache,
 we do not cache raw data objects, but rather query results. Caching query results preserves the computational effort in addition to reducing I/O, which has a
-much bigger impact on query performance and substantially reduces the size of the cache.. Additionally, the cache that we introduce resides on disk rather 
+much bigger impact on query performance and substantially reduces the size of the cache. Additionally, the cache that we introduce resides on disk rather 
 than in memory, which greatly increases its potential size. Lopez et al. also explore approximate querying through aggregation, which can be fairly easily
 supported by our system but is of limited use as scientists performing threshold queries are usually interested in obtaining the exact locations where a field is 
 at its highest values.
@@ -768,7 +768,7 @@ magnitude. The cache adds minimal overhead during the evaluation of queries even
 a cache miss and has modest storage requirements. The cache is represented as a set of database tables and resides on disk rather than in memory. 
 Each database node has local cache tables, which allows the cache to scale-out as the cluster grows.
 
-The introduction of an application-aware cache for query results lays the ground work for the creation of a landmark database. Such a database can store the 
+The introduction of an application-aware cache for query results lays the groundwork for the creation of a landmark database. Such a database can store the 
 locations of the highest vorticity regions in the dataset or more broadly regions of interest and their associated statistics.
 
 The Web-services approach to archived numerical simulation datasets provides public access to high quality simulation data to anyone with an internet
@@ -786,10 +786,10 @@ implemented. Additionally, we plan on deploying a server-side computing environm
 resides on the servers near the data.
 This will allow for much greater flexibility in the type of computations that can be performed in addition to substantially decreasing the network overhead.
 
-\section{Acknowledgment}
+\section{Acknowledgments}
 The authors would like to thank the Turbulence Database Group at Johns Hopkins University as well as three anonymous reviewers for
 their insightful comments and suggestions. This work is supported in part by the National Science Foundation
-under Grants ....
+under Grants to..
 
 \bibliographystyle{abbrv}
 \bibliography{paper} 

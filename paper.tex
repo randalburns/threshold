@@ -383,14 +383,22 @@ against the specified threshold and if the value is higher it is maintained alon
 the spatial coordinates of the location in a list.
 
 We impose a limit on the maximum number of locations that can be returned as a result of a threshold query in order to prevent having to return
-the entire time-step or a significant fraction of it for queries with thresholds that are set too low. Currently this limit is around $10^6$ locations, which is
-sufficient to examine a time-step in detail. In the case of the vorticity these locations contain all values above $\sim$8 times the root mean square value of
-the vorticity, which is about $25\%$ of the maximum. Given that we are interested in extreme events, obtaining the locations with values even within $50\%$ 
-of the maximum would be sufficient. 
+the entire time-step or a significant fraction of it for queries with thresholds that are set too low. Currently this limit is set conservatively to $10^6$ locations, 
+which is sufficient to examine a time-step in detail. In the case of the vorticity, the values above 8 times the root mean square value, 
+which is about $25\%$ of the maximum, are contained within $2.6\times10^5$ points in each time-step. Figure \ref{fig:points_7rms} shows all the points 
+in a single time-step with values above 7 times the root mean square value. There are $2.4\times10^5$ points in the figure.
+Given that we are interested in extreme events, obtaining the locations with values even within $50\%$ of the maximum would be sufficient. 
 At the same time this also limits the amount of data that have to be returned to the user over the network as well as the amount of
 data that have to be cached. Users receive an error message notifying them if their request has a threshold that is set too low. If a user
 is interested in obtaining more data he or she can request the values of the derived field directly. Alternatively, if they are interested in the density distribution
 of values they can examine the probability density function (e.g. Fig. \ref{fig:pdf}), which is computed using a similar strategy to threshold queries.
+
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/points_7rms.png}
+\caption{Points with values above 7 times the root mean square value of the vorticity for a single time-step.}
+\label{fig:points_7rms}
+\end{figure}
 
 \begin{figure}
 \centering
@@ -414,6 +422,19 @@ and not the raw data of the simulation fields.
 Thus, we do not have to derive the requested field from the raw data for 
 queries that hit the cache. This results in a substantial improvement in query performance as we only have to scan
 a small set of data and do not need to perform any additional computation.
+
+Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
+locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
+reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries. Nevertheless, it can 
+easily be extended to cache the results of other query types as well if that becomes advantageous.
+
+The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
+Given a limit of $\sim$$10^6$ points per time-step for a threshold query, the space required to cache the maximum number of points including the index
+space and database overhead is $\sim$40MB. 
+Therefore for a dataset containing 
+1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
+results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
+require $\sim$5TB (15TB for vector fields).
 
 \begin{algorithm}
 \caption{Get points above threshold using cache}\label{alg:cache_lookup}
@@ -465,19 +486,6 @@ a small set of data and do not need to perform any additional computation.
 \end{algorithmic}
 \end{algorithm}
 
-Not all query results are suitable to caching. Most of the queries submitted to the JHTDB other than threshold queries request data at a collection of target
-locations. Given that there are $1024^4$ possible locations for three of the datasets and $6*1024^4$ locations for the channel-flow dataset the chance of
-reuse for the results of these queries is extremely small. This is why the cache currently stores only the results of threshold queries. Nevertheless, it can 
-easily be extended to cache the results of other query types as well if that becomes advantageous.
-
-The cached query results are stored in a table in the database and the overall size of the cache is limited by the amount of available disk space, not memory.
-Given a limit of $\sim$$10^6$ points per time-step for a threshold query, the space required to cache the maximum number of points including the index
-space and database overhead is $\sim$40MB. 
-Therefore for a dataset containing 
-1024 time-steps, as is the case for the isotropic turbulence and MHD datasets part of the JHTDB, a cache size of 40GB is sufficient to cache the query
-results for threshold queries of a derived field over the entire dataset. In contrast, computing and materializing a scalar derived field for the entire dataset will
-require $\sim$5TB (15TB for vector fields).
-
 The entire cache is comprised of two database tables. The {\it cacheInfo} table stores metadata for the cached entries. It stores information about the
 dataset, field, time-step, start and end coordinates of the spatial region examined and the threshold value used. The {\it cacheData} table stores the locations
 of all of the grid points, for which the field queried has a norm higher than the specified threshold. The {\it cacheData} table is foreign key constrained with
@@ -500,14 +508,6 @@ have enough space for the new records, space is freed up by removing the least r
 modifying the cache is done within a transaction with snapshot isolation level. Snapshot isolation allows us to avoid locking the tables that serve as the 
 cache for each transaction. This provides for a higher degree of parallelism and avoids any potential deadlocks from queries running in parallel.
 
-\begin{figure}
-\centering
-\includegraphics[width=3.35in]{Figures/cache_overhead.pdf}
-\caption{Semi-log plot of the execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the
-absence of a cache.}
-\label{fig:cache_overhead}
-\end{figure}
-
 \section{Experimental Results}
 We evaluate the developed method for the execution of threshold queries to large numerical simulation datasets with the goal of analyzing the 
 benefits and overhead from the introduction of the application-aware cache. We also analyze the scaling properties of the method. Finally, we show
@@ -523,6 +523,14 @@ The database nodes are 2.66 GHz dual quad-core Windows 2008 servers with SQL Ser
 SATA disks arranged as a set of four RAID-5 arrays. The database files are striped across the nodes and their associated disk
 arrays. The tables storing the data are partitioned spatially along contiguous ranges of the Morton z-curve and the data for each partition reside in one
 database file. 
+
+\begin{figure}
+\centering
+\includegraphics[width=3.35in]{Figures/cache_overhead.pdf}
+\caption{Semi-log plot of the execution time for threshold queries at different threshold levels compared with the execution time of the same queries in the
+absence of a cache.}
+\label{fig:cache_overhead}
+\end{figure}
 
 For this evaluation we looked at the performance of threshold queries to the vorticity field. The vorticity field is representative of derived fields that
 have to be computed from the stored data. It is defined as the curl of the velocity field.
@@ -554,6 +562,18 @@ For the first set the threshold was set high (80.0) and only $\sim$4,300 points
 (or 0.0847\% of all points) above the threshold. For each set a random
 time-step was chosen and the queries were run against that time-step. The measurements were taken from the point of view of the end user. 
 
+As we can see from the results shown in Figure \ref{fig:cache_overhead} the overhead associated with querying the cache first is minimal, 
+less than 3\% and within the margin of error.
+The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
+During the ``cache-miss" runs cache entries for the particular time-step queried were dropped before each run, making sure that each query would
+produce a cache miss and would have to be evaluated from the raw data. 
+The execution times were averaged over 10 runs.
+We utilized 4 processes per database node for the evaluation of each query. 
+The method shows stable running time across different time-steps and threshold levels in the absence of a cache and during cache misses.
+The running time increases slightly only because of the larger result set that has to be returned to the user.
+%Additionally, the method shows stable running time across different time-steps and threshold levels even with cache
+%misses. The slight increase in the running time that can be observed is due to the larger result set that has to be returned to the user.
+
 \begin{table}[h]
 \centering
 \begin{tabular}{|c|c|c|c|c|} \hline
@@ -566,18 +586,6 @@ time-step was chosen and the queries were run against that time-step. The measur
 \caption{Effectiveness of caching.}
 \label{tab:cache_effectiveness}
 \end{table}
-
-As we can see from the results shown in Figure \ref{fig:cache_overhead} the overhead associated with querying the cache first is minimal, 
-less than 3\% and within the margin of error.
-The cache was initially populated by executing several hundred unrelated queries and contained several million entries.
-During the ``cache-miss" runs cache entries for the particular time-step queried were dropped before each run, making sure that each query would
-produce a cache miss and would have to be evaluated from the raw data. 
-The execution times were averaged over 10 runs.
-We utilized 4 processes per database node for the evaluation of each query. 
-The method shows stable running time across different time-steps and threshold levels in the absence of a cache and during cache misses.
-The running time increases slightly only because of the larger result set that has to be returned to the user.
-%Additionally, the method shows stable running time across different time-steps and threshold levels even with cache
-%misses. The slight increase in the running time that can be observed is due to the larger result set that has to be returned to the user.
 
 Cache hits reduce the running time of threshold queries by over an order of magnitude as shown in Figure \ref{fig:cache_overhead} and
 Table \ref{tab:cache_effectiveness}. This is because we do not have to compute the requested derived
@@ -693,10 +701,11 @@ Caching the results of threshold queries
 effectively preserves the I/O and computational effort spent during their initial evaluation and results in over an order of magnitude speedup for all the
 different fields requested as we can see in Figure \ref{fig:breakdown}.
 
+\vspace{2mm}
 \section{Related Work}
 Only select few database systems offer support for arrays as first-class citizens. Even fewer provide the fault-tolerance, scalability and availability guarantees 
-necessary for a system managing multi-terabyte datasets in a production setting. This is part of the reason why we have chosen to represent the array simulation
-data in the JHTDB as a collection of binary large objects in a standard relational DBMS and perform the array manipulation tasks necessary at the application level.
+necessary for a system managing multi-terabyte datasets in a production setting. This is part of the reason why we have chosen to represent the array
+data in the JHTDB as a collection of binary large objects in a relational DBMS and perform the array manipulation tasks necessary at the application level.
 The systems that provide
 support for arrays and aim to handle large array data efficiently are RasDaMan \cite{Rasdaman}, SciDB \cite{Scidb} and MonetDB/SciQL \cite{Sciql}. RasDaMan
 partitions raster objects into tiles, which are stored in a traditional relational database system. This approach is similar to how the numerical simulation data
@@ -704,7 +713,7 @@ are handled in the JHTDB. RasDaMan provides RasQL \cite{Rasql}, which is a SQL-9
 is an array database system build from the ground up. Array attributes are partitioned vertically and each attribute array is decomposed into overlapping
 chunks. SciDB provides a declarative Array Query Language (AQL) and an Array Functional Language (AFL). Users can create arrays with named
 dimensions with AQL and make use of the functional operators defined in AFL, such
-as SLICE, SUBSAMPLE, SJOIN, FILTER and APPLY. SciQL's focus is on language design and the integration with SQL:2003 syntax and semantics. It is implemented
+as SLICE, SUBSAMPLE, SJOIN, FILTER and APPLY. SciQL's focus is on language design and integration with SQL:2003 syntax and semantics. It is implemented
 within the MonetDB framework \cite{MonetDB}.
 
 Database systems support rollup queries, including top-$k$ queries, but in most cases these

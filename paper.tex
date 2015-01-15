@@ -600,6 +600,7 @@ several more unrelated queries with different time-steps and threshold values in
 measure their running times. Let us focus on the query
 with low threshold, which returns $\sim$900,000 points. Given that valid threshold values are limited to those that result in no more than 1,000,000 points
 it is likely that all subsequent queries to this time-step will result in a cache hit as their threshold is likely to be equal or higher than the cached one.
+Currently we observe fairly high cache-hit ratios as the workload is very structured and queries tend to examine the same regions in space and time.
 
 \subsection{Scaling and Distributed Evaluation}
 The evaluation of threshold queries of derived fields from the raw data is both I/O and computationally bound. These queries examine the entire data
@@ -679,7 +680,7 @@ requested to yield a small in size result.
 \subsection{Evaluation of Additional Fields}
 The data-parallel evaluation of threshold queries shows stable execution time for different derived fields in addition to the different threshold levels and
 time-steps queried. The execution times depend on the complexity of the computation needed to evaluate the particular derived field requested. Figures 
-\ref{fig:vorticity_breakdown}, \ref{fig:q_breakdown}, \ref{fig:magnetic_breakdown} show a breakdown of the execution time of threshold queries of different
+\ref{fig:vorticity_breakdown}, \ref{fig:q_breakdown} and \ref{fig:magnetic_breakdown} show a breakdown of the execution time of threshold queries of different
 derived fields, which are evaluated from the raw data and a cold cache using 4 processes per node on a 4 node cluster. Almost the entire time is spent
 performing the I/O and computation associated with the derived field requested. 
 
@@ -735,7 +736,7 @@ same threshold level will produce different number of points in the result set f
 
 The processing of top-$k$ queries has been studied extensively in the context of distributed and relational database systems. A survey of different techniques
 in the case of centralized processing is given in \cite{Ilyas}. In the case of distributed processing different approaches focus on horizontally 
-\cite{Balke, Vlachou} or vertically \cite{Cao, Chaudhuri, Guntzer, Marian, Michel} distributed data. None of these approaches deals with array data stored in
+\cite{Balke, Vlachou} or vertically \cite{Cao, Chaudhuri, Guntzer, Marian, Michel} distributed data. None of these approaches deal with array data stored in
 a relational database system. Zhao et al. propose an algorithm for the processing of top-$k$ queries in large-scale distributed environments called BRANCA
 \cite{Zhao}. They build on the idea of semantic caching \cite{Ren} and make use of branch caches, which store results of previous top-$k$ queries with respect 
 to the data stored on each server. The caching mechanism that we use is similar in that regard, but the queries that are evaluated in our system operate on
@@ -759,7 +760,7 @@ at its highest values.
 
 Sampling approaches \cite{Sidirourgos, Nirkhiwale} offer an alternative to the on-demand computation of derived fields and the evaluation of threshold queries
 on them. The goal of both techniques is to not return large data volumes, but focus on the most intense events and interesting regions in the dataset. 
-The computation of the derived fields is carried out on the nodes of the database cluster and takes a look at the dataset as a whole, while the user obtains only
+The computation of derived fields is carried out on the nodes of the database cluster and takes a look at the dataset as a whole, while the user obtains only
 a small subset of the data, where the derived field in question is above the prescribed threshold. Sampling approaches can potentially omit some locations and
 while useful for generating initial impressions may not be suitable if the exact locations where a field is at its highest values are desired.
 
